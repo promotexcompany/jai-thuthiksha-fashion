@@ -1,0 +1,46 @@
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+import authRoutes from './routes/auth.js';
+import dressRoutes from './routes/dresses.js';
+import categoryRoutes from './routes/categories.js';
+import filterRoutes from './routes/filters.js';
+import bookingRoutes from './routes/bookings.js';
+import settingsRoutes from './routes/settings.js';
+import uploadRoutes from './routes/upload.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Enable CORS for frontend client
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Static file uploads directory
+const publicUploadsDir = path.join(__dirname, '../public/uploads');
+app.use('/uploads', express.static(publicUploadsDir));
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/dresses', dressRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/filters', filterRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api', uploadRoutes);
+
+// Health Check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Jai Thuthiksha Fashion API Server Operational' });
+});
+
+// Start Server
+app.listen(PORT, () => {
+  console.log(`✨ JTF Express API Server listening on http://localhost:${PORT}`);
+});
