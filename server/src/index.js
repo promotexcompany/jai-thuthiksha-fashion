@@ -50,6 +50,10 @@ app.get('/api/health', (req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
-  console.log(`✨ JTF Express API Server listening on http://localhost:${PORT}`);
-});
+export default app;
+
+if (!process.env.VERCEL) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`JTF Express API Server listening on port ${PORT}`);
+  });
+}
