@@ -1,19 +1,21 @@
 import { useState } from 'react';
-import { X, Star, Calendar, ShieldCheck, Sparkles, Heart, MessageSquare, User } from 'lucide-react';
-import type { Product } from '../types/fashion';
+import { X, Star, Calendar, ShieldCheck, Sparkles, Heart, MessageSquare, User, Tag } from 'lucide-react';
+import type { CategoryOffer, Product } from '../types/fashion';
 import { calculateReturnDate, generateWhatsAppBookingUrl } from '../config/shopConfig';
 import { api } from '../services/api';
 import { useCustomerAuth } from '../context/CustomerAuthContext';
+import { getCalculatedPrice } from '../utils/offerUtils';
 
 interface QuickViewModalProps {
   product: Product | null;
   onClose: () => void;
-  onAddToCart?: (product: Product, selectedSize: string, startDate: string, durationDays: 4 | 8) => void;
+  offers?: CategoryOffer[];
 }
 
 export const QuickViewModal: React.FC<QuickViewModalProps> = ({
   product,
   onClose,
+  offers = [],
 }) => {
   const { customerUser } = useCustomerAuth();
 
@@ -25,13 +27,21 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [isFavorite, setIsFavorite] = useState(false);
 
-  const currentRentalPrice = durationDays === 4 ? product.rentalPrice4Days : product.rentalPrice8Days;
+  const rawOriginalPrice = durationDays === 4 ? product.rentalPrice4Days : product.rentalPrice8Days;
+  
+  const priceInfo = getCalculatedPrice(
+    rawOriginalPrice,
+    product.categoryId || product.category,
+    product.categoryLabel,
+    offers
+  );
+
   const returnDate = calculateReturnDate(startDate, durationDays);
 
   const handleBookViaWhatsApp = async () => {
     const finalCustomerName = customerName.trim() || customerUser?.name || 'WhatsApp Customer';
 
-    // Log enquiry into Supabase bookings table
+    // Log enquiry into backend bookings table
     await api.logEnquiry({
       customerName: finalCustomerName,
       customerPhone: 'Via WhatsApp',
@@ -41,7 +51,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
       startDate: startDate,
       returnDate: returnDate,
       durationDays: durationDays,
-      rentalPrice: currentRentalPrice
+      rentalPrice: priceInfo.finalPrice
     });
 
     const whatsappUrl = generateWhatsAppBookingUrl({
@@ -52,7 +62,9 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
       returnDate: returnDate,
       selectedSize: selectedSize,
       durationDays: durationDays,
-      rentalPrice: currentRentalPrice,
+      originalPrice: priceInfo.hasOffer ? priceInfo.originalPrice : undefined,
+      discountPercentage: priceInfo.hasOffer ? priceInfo.discountPercentage : undefined,
+      rentalPrice: priceInfo.finalPrice,
     });
 
     // Open WhatsApp in a new tab
@@ -84,6 +96,13 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
               <Sparkles className="w-3.5 h-3.5" />
               {product.categoryLabel}
             </div>
+
+            {priceInfo.hasOffer && (
+              <div className="absolute top-4 right-14 bg-red-600 text-white text-xs font-extrabold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-lg animate-pulse">
+                <Tag className="w-3.5 h-3.5" />
+                <span>{priceInfo.discountPercentage}% OFF</span>
+              </div>
+            )}
             
             <button
               onClick={() => setIsFavorite(!isFavorite)}
@@ -113,21 +132,41 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                 {product.name}
               </h2>
 
-              {/* Price comparison */}
-              <div className="mt-3 p-3 rounded-xl bg-pink-50/70 border border-pink-100 flex items-center justify-between">
-                <div>
-                  <span className="text-xs text-gray-500 block">Rental Fee ({durationDays} Days)</span>
-                  <span className="text-2xl font-extrabold text-pink-700">
-                    ₹{currentRentalPrice.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs text-gray-400 line-through block">
-                    Retail ₹{product.retailPrice.toLocaleString('en-IN')}
-                  </span>
-                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
-                    Save {Math.round((1 - currentRentalPrice / product.retailPrice) * 100)}%
-                  </span>
+              {/* Dynamic Price Display */}
+              <div className="mt-3 p-3.5 rounded-xl bg-pink-50/70 border border-pink-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-gray-500 block">Rental Fee ({durationDays} Days)</span>
+                    <div className="flex items-baseline gap-2 mt-0.5">
+                      {priceInfo.hasOffer ? (
+                        <>
+                          <span className="text-2xl font-extrabold text-pink-700">
+                            ₹{priceInfo.finalPrice.toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-sm font-semibold text-gray-400 line-through">
+                            ₹{priceInfo.originalPrice.toLocaleString('en-IN')}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-2xl font-extrabold text-pink-700">
+                          ₹{priceInfo.originalPrice.toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {priceInfo.hasOffer && (
+                    <div className="text-right">
+                      <span className="text-xs font-extrabold text-red-700 bg-red-100 px-2.5 py-1 rounded-full inline-block">
+                        {priceInfo.discountPercentage}% OFF
+                      </span>
+                      {priceInfo.offerName && (
+                        <span className="text-[10px] text-pink-800 font-medium block mt-1">
+                          {priceInfo.offerName}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -160,7 +199,9 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                     }`}
                   >
                     <span>4 Days Rental</span>
-                    <span className="text-pink-700 font-bold mt-0.5">₹{product.rentalPrice4Days.toLocaleString('en-IN')}</span>
+                    <span className="text-pink-700 font-bold mt-0.5">
+                      ₹{getCalculatedPrice(product.rentalPrice4Days, product.categoryId || product.category, product.categoryLabel, offers).finalPrice.toLocaleString('en-IN')}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -172,7 +213,9 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                     }`}
                   >
                     <span>8 Days Rental</span>
-                    <span className="text-pink-700 font-bold mt-0.5">₹{product.rentalPrice8Days.toLocaleString('en-IN')}</span>
+                    <span className="text-pink-700 font-bold mt-0.5">
+                      ₹{getCalculatedPrice(product.rentalPrice8Days, product.categoryId || product.category, product.categoryLabel, offers).finalPrice.toLocaleString('en-IN')}
+                    </span>
                   </button>
                 </div>
               </div>

@@ -11,6 +11,8 @@ import filterRoutes from './routes/filters.js';
 import bookingRoutes from './routes/bookings.js';
 import settingsRoutes from './routes/settings.js';
 import uploadRoutes from './routes/upload.js';
+import contactRoutes from './routes/contact.js';
+import offersRoutes from './routes/offers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +40,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/filters', filterRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/offers', offersRoutes);
 app.use('/api', uploadRoutes);
 
 // Health Check

@@ -166,7 +166,27 @@ const getInitialData = () => {
       aboutContent: 'Founded with a vision to make royal heritage bridal couture accessible, sustainable, and affordable. At Jai Thuthiksha Fashion, every outfit tells a story of craftsmanship, elegance, and timeless South Asian heritage.',
       termsInstructions: 'Every rental includes complimentary custom alterations, 5-stage medical-grade dry cleaning, and protective garment bag delivery. Orders must be returned in the provided return bag on or before the agreed return date.',
       cancellationAdvanceInfo: 'An advance deposit is required to confirm your rental dates. Cancellations made 7+ days prior to rental start date receive 100% refund of advance deposit.'
-    }
+    },
+    offers: [
+      {
+        id: 'off-1',
+        name: 'Bridal Special Festive Discount',
+        categoryId: 'cat-1',
+        categoryName: 'Bride Dresses',
+        discountPercentage: 20,
+        isActive: true,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'off-2',
+        name: 'Maternity Wear Launch Offer',
+        categoryId: 'cat-3',
+        categoryName: 'Maternity Wear',
+        discountPercentage: 15,
+        isActive: true,
+        createdAt: new Date().toISOString()
+      }
+    ]
   };
 };
 

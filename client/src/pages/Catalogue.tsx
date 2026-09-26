@@ -2,17 +2,16 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useOutletContext } from 'react-router-dom';
 import { PRODUCTS, CATEGORIES } from '../services/data';
 import { api } from '../services/api';
-import type { Product, Category } from '../types/fashion';
-import { Star, Search, Sparkles, SlidersHorizontal, RotateCcw } from 'lucide-react';
-
-interface LayoutContextType {
-  onQuickView: (product: Product) => void;
-  onAddToCart: (product: Product, size: string, startDate: string, duration: 4 | 8) => void;
-}
+import type { Product, Category, CategoryOffer } from '../types/fashion';
+import { Star, Search, Sparkles, SlidersHorizontal, RotateCcw, Tag } from 'lucide-react';
+import { getCalculatedPrice } from '../utils/offerUtils';
+import type { MainLayoutContextType } from '../layouts/MainLayout';
 
 export const Catalogue: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { onQuickView } = useOutletContext<LayoutContextType>();
+  const context = useOutletContext<MainLayoutContextType>();
+  const onQuickView = context?.onQuickView;
+  const offers: CategoryOffer[] = context?.offers || [];
 
   const selectedCatParam = searchParams.get('cat') || 'all';
 
@@ -63,8 +62,9 @@ export const Catalogue: React.FC = () => {
       ) {
         return false;
       }
-      // Price check
-      if (p.rentalPrice4Days > maxPrice) {
+      // Price check (against calculated final price)
+      const pInfo = getCalculatedPrice(p.rentalPrice4Days, p.categoryId || p.category, p.categoryLabel, offers);
+      if (pInfo.finalPrice > maxPrice) {
         return false;
       }
       // Size check
@@ -73,12 +73,15 @@ export const Catalogue: React.FC = () => {
       }
       return true;
     }).sort((a, b) => {
-      if (sortBy === 'price-low') return a.rentalPrice4Days - b.rentalPrice4Days;
-      if (sortBy === 'price-high') return b.rentalPrice4Days - a.rentalPrice4Days;
+      const aInfo = getCalculatedPrice(a.rentalPrice4Days, a.categoryId || a.category, a.categoryLabel, offers);
+      const bInfo = getCalculatedPrice(b.rentalPrice4Days, b.categoryId || b.category, b.categoryLabel, offers);
+
+      if (sortBy === 'price-low') return aInfo.finalPrice - bInfo.finalPrice;
+      if (sortBy === 'price-high') return bInfo.finalPrice - aInfo.finalPrice;
       if (sortBy === 'rating') return (b.rating || 5) - (a.rating || 5);
       return 0;
     });
-  }, [productsList, categoryFilter, searchQuery, maxPrice, selectedSize, sortBy]);
+  }, [productsList, categoryFilter, searchQuery, maxPrice, selectedSize, sortBy, offers]);
 
   const handleCategorySelect = (catId: string) => {
     setCategoryFilter(catId);
@@ -214,55 +217,76 @@ export const Catalogue: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                className="bg-white rounded-2xl overflow-hidden border border-pink-100 shadow-sm hover:shadow-xl transition duration-300 flex flex-col group"
-              >
-                <div className="relative h-80 overflow-hidden bg-gray-100">
-                  <img
-                    src={product.primaryImage || product.image}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                  />
-                  <div className="absolute top-3 left-3 bg-pink-900/80 text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">
-                    {product.categoryLabel}
-                  </div>
-                </div>
+            {filteredProducts.map((product) => {
+              const pInfo = getCalculatedPrice(product.rentalPrice4Days, product.categoryId || product.category, product.categoryLabel, offers);
+              return (
+                <div
+                  key={product.id}
+                  className="bg-white rounded-2xl overflow-hidden border border-pink-100 shadow-sm hover:shadow-xl transition duration-300 flex flex-col group"
+                >
+                  <div className="relative h-80 overflow-hidden bg-gray-100">
+                    <img
+                      src={product.primaryImage || product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    />
+                    <div className="absolute top-3 left-3 bg-pink-900/80 text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">
+                      {product.categoryLabel}
+                    </div>
 
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <div className="flex justify-between items-center text-xs text-gray-500 mb-1">
-                      <span className="font-semibold text-pink-700">{product.designer}</span>
-                      <div className="flex items-center gap-1 text-amber-500 font-bold">
-                        <Star className="w-3.5 h-3.5 fill-amber-400" />
-                        <span>{product.rating || 5.0}</span>
+                    {pInfo.hasOffer && (
+                      <div className="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
+                        <Tag className="w-3 h-3" />
+                        {pInfo.discountPercentage}% OFF
                       </div>
-                    </div>
-
-                    <h3 className="font-bold text-gray-900 text-base font-serif line-clamp-1 group-hover:text-pink-700 transition">
-                      {product.name}
-                    </h3>
+                    )}
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                  <div className="p-5 flex-1 flex flex-col justify-between">
                     <div>
-                      <span className="text-[10px] text-gray-400 uppercase tracking-wider block">4-Day Rent</span>
-                      <span className="text-lg font-extrabold text-pink-700">
-                        ₹{product.rentalPrice4Days.toLocaleString('en-IN')}
-                      </span>
+                      <div className="flex justify-between items-center text-xs text-gray-500 mb-1">
+                        <span className="font-semibold text-pink-700">{product.designer}</span>
+                        <div className="flex items-center gap-1 text-amber-500 font-bold">
+                          <Star className="w-3.5 h-3.5 fill-amber-400" />
+                          <span>{product.rating || 5.0}</span>
+                        </div>
+                      </div>
+
+                      <h3 className="font-bold text-gray-900 text-base font-serif line-clamp-1 group-hover:text-pink-700 transition">
+                        {product.name}
+                      </h3>
                     </div>
 
-                    <button
-                      onClick={() => onQuickView(product)}
-                      className="px-4 py-2 rounded-xl bg-pink-700 text-white font-bold text-xs hover:bg-pink-800 transition shadow-sm"
-                    >
-                      View & Rent
-                    </button>
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider block">4-Day Rent</span>
+                        {pInfo.hasOffer ? (
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-lg font-extrabold text-pink-700">
+                              ₹{pInfo.finalPrice.toLocaleString('en-IN')}
+                            </span>
+                            <span className="text-xs text-gray-400 line-through">
+                              ₹{pInfo.originalPrice.toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-lg font-extrabold text-pink-700">
+                            ₹{pInfo.originalPrice.toLocaleString('en-IN')}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => onQuickView && onQuickView(product)}
+                        className="px-4 py-2 rounded-xl bg-pink-700 text-white font-bold text-xs hover:bg-pink-800 transition shadow-sm"
+                      >
+                        View & Rent
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

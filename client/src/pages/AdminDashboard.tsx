@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { api } from '../services/api';
-import type { Product, Category } from '../types/fashion';
+import type { Product, Category, CategoryOffer } from '../types/fashion';
 import {
   LogOut, Plus, Trash2, Edit3, ShoppingBag, X, LayoutDashboard, Tag, SlidersHorizontal,
-  Image as ImageIcon, Calendar, Settings, Eye, EyeOff, Check, AlertTriangle, Upload
+  Image as ImageIcon, Calendar, Settings, Eye, EyeOff, Check, Percent, AlertCircle
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 export const AdminDashboard: React.FC = () => {
   const { logout, adminUser } = useAdminAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'dresses' | 'categories' | 'filters' | 'images' | 'bookings' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'dresses' | 'categories' | 'offers' | 'filters' | 'images' | 'bookings' | 'settings'>('overview');
 
   // Server Data States
   const [dresses, setDresses] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [offers, setOffers] = useState<CategoryOffer[]>([]);
   const [filters, setFilters] = useState<any>({ sizes: [], colors: [], occasions: [] });
   const [bookings, setBookings] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>({});
@@ -56,18 +57,31 @@ export const AdminDashboard: React.FC = () => {
     enabled: true
   });
 
+  // Offer Form State
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [editingOfferId, setEditingOfferId] = useState<string | null>(null);
+  const [offerModalError, setOfferModalError] = useState<string | null>(null);
+  const [offerForm, setOfferForm] = useState({
+    name: '',
+    categoryId: '',
+    categoryName: '',
+    discountPercentage: 20,
+    isActive: true,
+  });
+
   // Filter Form State
   const [newSize, setNewSize] = useState('');
 
   // Load backend data
   const fetchData = async () => {
     try {
-      const [dressesData, catsData, filtersData, bkgsData, settingsData] = await Promise.all([
+      const [dressesData, catsData, filtersData, bkgsData, settingsData, offersData] = await Promise.all([
         api.getAllAdminDresses(),
         api.getAllAdminCategories(),
         api.getFilters(),
         api.getAllAdminBookings(),
-        api.getSettings()
+        api.getSettings(),
+        api.getAllAdminOffers()
       ]);
 
       if (dressesData) setDresses(dressesData);
@@ -75,6 +89,7 @@ export const AdminDashboard: React.FC = () => {
       if (filtersData) setFilters(filtersData);
       if (bkgsData) setBookings(bkgsData);
       if (settingsData) setSettings(settingsData);
+      if (offersData && Array.isArray(offersData)) setOffers(offersData);
     } catch (err: any) {
       console.error('Error fetching admin data:', err);
     }
@@ -98,13 +113,13 @@ export const AdminDashboard: React.FC = () => {
         notify('Dress updated successfully!');
       } else {
         await api.addDress(dressForm);
-        notify('New dress created successfully!');
+        notify('New dress added to inventory!');
       }
       setShowDressModal(false);
       setEditingDressId(null);
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Failed to save dress');
+      alert(err.message);
     }
   };
 
@@ -112,8 +127,8 @@ export const AdminDashboard: React.FC = () => {
     setEditingDressId(dress.id);
     setDressForm({
       name: dress.name,
-      categoryId: (dress as any).categoryId || '',
-      categoryName: dress.categoryLabel,
+      categoryId: (dress as any).categoryId || dress.category,
+      categoryName: dress.categoryLabel || dress.category,
       designer: dress.designer,
       retailPrice: dress.retailPrice,
       rentalPrice4Days: dress.rentalPrice4Days,
@@ -212,6 +227,86 @@ export const AdminDashboard: React.FC = () => {
       try {
         await api.deleteCategory(id);
         notify('Category deleted');
+        fetchData();
+      } catch (err: any) {
+        alert(err.message);
+      }
+    }
+  };
+
+  // Offer Handlers
+  const handleOpenAddOffer = () => {
+    setEditingOfferId(null);
+    setOfferModalError(null);
+    const initialCat = categories[0] || { id: 'cat-1', name: 'Bride Dresses' };
+    setOfferForm({
+      name: '',
+      categoryId: initialCat.id,
+      categoryName: initialCat.name,
+      discountPercentage: 20,
+      isActive: true,
+    });
+    setShowOfferModal(true);
+  };
+
+  const handleOpenEditOffer = (offer: CategoryOffer) => {
+    setEditingOfferId(offer.id);
+    setOfferModalError(null);
+    setOfferForm({
+      name: offer.name,
+      categoryId: offer.categoryId,
+      categoryName: offer.categoryName,
+      discountPercentage: offer.discountPercentage,
+      isActive: offer.isActive,
+    });
+    setShowOfferModal(true);
+  };
+
+  const handleSaveOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOfferModalError(null);
+
+    if (!offerForm.name.trim()) {
+      setOfferModalError('Offer Name is required.');
+      return;
+    }
+
+    if (offerForm.discountPercentage <= 0 || offerForm.discountPercentage > 100) {
+      setOfferModalError('Discount Percentage must be between 1% and 100%.');
+      return;
+    }
+
+    try {
+      if (editingOfferId) {
+        await api.updateOffer(editingOfferId, offerForm);
+        notify('Offer updated successfully!');
+      } else {
+        await api.addOffer(offerForm);
+        notify('New offer created and published!');
+      }
+      setShowOfferModal(false);
+      setEditingOfferId(null);
+      fetchData();
+    } catch (err: any) {
+      setOfferModalError(err.message || 'Failed to save offer.');
+    }
+  };
+
+  const handleToggleOfferStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      await api.toggleOfferStatus(id, !currentStatus);
+      notify(`Offer ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
+      fetchData();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteOffer = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this offer?')) {
+      try {
+        await api.deleteOffer(id);
+        notify('Offer deleted');
         fetchData();
       } catch (err: any) {
         alert(err.message);
@@ -320,6 +415,23 @@ export const AdminDashboard: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setActiveTab('offers')}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition ${
+                activeTab === 'offers' ? 'bg-pink-700 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Percent className="w-4 h-4 text-amber-400" />
+                <span>Offers & Discounts</span>
+              </div>
+              {offers.filter(o => o.isActive).length > 0 && (
+                <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full">
+                  {offers.filter(o => o.isActive).length} Active
+                </span>
+              )}
+            </button>
+
+            <button
               onClick={() => setActiveTab('filters')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${
                 activeTab === 'filters' ? 'bg-pink-700 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'
@@ -393,7 +505,7 @@ export const AdminDashboard: React.FC = () => {
         {/* Top Header */}
         <header className="bg-slate-900/80 border-b border-slate-800 p-4 sm:p-6 flex justify-between items-center sticky top-0 z-20 backdrop-blur-md">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold font-serif text-white uppercase tracking-wider">
+            <h1 className="text-xl font-bold font-serif text-white uppercase tracking-wider capitalize">
               {activeTab} Management
             </h1>
           </div>
@@ -441,14 +553,14 @@ export const AdminDashboard: React.FC = () => {
                   <span className="text-3xl font-extrabold text-amber-400 mt-1 block">{categories.length}</span>
                 </div>
                 <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800">
-                  <span className="text-xs text-slate-400 block font-bold">WhatsApp Enquiries</span>
-                  <span className="text-3xl font-extrabold text-emerald-400 mt-1 block">{bookings.length}</span>
+                  <span className="text-xs text-slate-400 block font-bold">Active Category Offers</span>
+                  <span className="text-3xl font-extrabold text-pink-400 mt-1 block">
+                    {offers.filter((o) => o.isActive).length}
+                  </span>
                 </div>
                 <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800">
-                  <span className="text-xs text-slate-400 block font-bold">Backend Security Status</span>
-                  <span className="text-xs font-bold text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-full border border-emerald-800 mt-2 inline-block">
-                    RBAC Active (403 Forbidden Enforced)
-                  </span>
+                  <span className="text-xs text-slate-400 block font-bold">WhatsApp Enquiries</span>
+                  <span className="text-3xl font-extrabold text-emerald-400 mt-1 block">{bookings.length}</span>
                 </div>
               </div>
 
@@ -505,127 +617,66 @@ export const AdminDashboard: React.FC = () => {
                       images: [],
                       primaryImage: '',
                       description: '',
-                      fabric: 'Silk & Embroidery',
+                      fabric: 'Micro Velvet',
                       workType: 'Zardozi Handcraft',
                       sizes: ['S', 'M', 'L'],
-                      colors: ['Red'],
+                      colors: ['Crimson Red'],
                       occasion: 'Wedding Day',
                       isAvailable: true,
                       isHidden: false
                     });
                     setShowDressModal(true);
                   }}
-                  className="px-5 py-2.5 rounded-xl gradient-btn text-white font-bold text-xs flex items-center gap-2 shadow-lg"
+                  className="px-4 py-2.5 rounded-xl gradient-btn text-white text-xs font-bold flex items-center gap-2 shadow-lg"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Add New Dress</span>
                 </button>
               </div>
 
-              {/* Table */}
-              <div className="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-slate-300">
-                    <thead className="bg-slate-950 uppercase font-bold text-slate-400 border-b border-slate-800">
-                      <tr>
-                        <th className="p-4">Dress</th>
-                        <th className="p-4">Category</th>
-                        <th className="p-4">Advance</th>
-                        <th className="p-4">4-Day Rent</th>
-                        <th className="p-4">Availability</th>
-                        <th className="p-4">Status</th>
-                        <th className="p-4">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/60">
-                      {dresses.map((d) => (
-                        <tr key={d.id} className="hover:bg-slate-800/40">
-                          <td className="p-4 flex items-center gap-3">
-                            <img src={d.image} alt={d.name} className="w-12 h-14 object-cover rounded-lg border border-slate-700" />
-                            <div>
-                              <span className="font-bold text-white text-sm block">{d.name}</span>
-                              <span className="text-[10px] text-pink-400">{d.designer}</span>
-                            </div>
-                          </td>
-                          <td className="p-4 font-semibold text-amber-300">{d.categoryLabel}</td>
-                          <td className="p-4 font-bold text-emerald-400">₹{(d as any).advanceAmount || 1500}</td>
-                          <td className="p-4 font-bold text-pink-400">₹{d.rentalPrice4Days.toLocaleString('en-IN')}</td>
-                          <td className="p-4">
-                            <button
-                              onClick={() => handleToggleDressStatus(d.id, { isAvailable: !(d as any).isAvailable })}
-                              className={`px-3 py-1 rounded-full font-bold text-[10px] ${
-                                (d as any).isAvailable !== false ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-red-950 text-red-300 border border-red-800'
-                              }`}
-                            >
-                              {(d as any).isAvailable !== false ? 'Available' : 'Unavailable'}
-                            </button>
-                          </td>
-                          <td className="p-4">
-                            <button
-                              onClick={() => handleToggleDressStatus(d.id, { isHidden: !(d as any).isHidden })}
-                              className={`px-3 py-1 rounded-full font-bold text-[10px] flex items-center gap-1 ${
-                                (d as any).isHidden ? 'bg-slate-800 text-slate-400' : 'bg-pink-950 text-pink-300 border border-pink-800'
-                              }`}
-                            >
-                              {(d as any).isHidden ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                              {(d as any).isHidden ? 'Hidden' : 'Visible'}
-                            </button>
-                          </td>
-                          <td className="p-4 flex items-center gap-2">
-                            <button
-                              onClick={() => handleEditDress(d)}
-                              className="p-2 text-slate-300 hover:text-white bg-slate-800 rounded-lg"
-                              title="Edit dress"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteDress(d.id)}
-                              className="p-2 text-red-400 hover:text-red-300 bg-red-950/60 rounded-lg"
-                              title="Delete dress"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 3. CATEGORIES TAB */}
-          {activeTab === 'categories' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <p className="text-xs text-slate-400">Manage categories (Bride Dresses, Maternity Wear, Photoshoot, Traditional, Party Wear, Custom).</p>
-                <button
-                  onClick={() => {
-                    setEditingCatId(null);
-                    setCatForm({ name: '', tagline: '', image: '', order: categories.length + 1, enabled: true });
-                    setShowCategoryModal(true);
-                  }}
-                  className="px-5 py-2.5 rounded-xl gradient-btn text-white font-bold text-xs flex items-center gap-2 shadow-lg"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Category</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {categories.map((c) => (
-                  <div key={c.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 relative">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-[10px] text-amber-400 font-bold uppercase">Order #{c.order || 1}</span>
-                        <h4 className="text-lg font-bold text-white font-serif">{c.name}</h4>
-                        <p className="text-xs text-slate-400">{c.tagline}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {dresses.map((dress) => (
+                  <div key={dress.id} className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden space-y-4 p-4 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      <div className="relative h-48 bg-slate-950 rounded-2xl overflow-hidden">
+                        <img src={dress.image} alt={dress.name} className="w-full h-full object-cover" />
+                        <div className="absolute top-2 left-2 bg-slate-900/90 text-amber-300 text-[10px] font-bold px-2 py-1 rounded-full border border-slate-700">
+                          {dress.categoryLabel}
+                        </div>
                       </div>
+
+                      <div>
+                        <h4 className="font-bold text-white text-base font-serif line-clamp-1">{dress.name}</h4>
+                        <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                          <span>4-Day: <strong className="text-pink-400">₹{dress.rentalPrice4Days}</strong></span>
+                          <span>Retail: ₹{dress.retailPrice}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-slate-800 pt-3 text-xs">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleToggleDressStatus(dress.id, { isHidden: !(dress as any).isHidden })}
+                          className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+                          title={(dress as any).isHidden ? 'Unhide' : 'Hide from catalogue'}
+                        >
+                          {(dress as any).isHidden ? <EyeOff className="w-4 h-4 text-red-400" /> : <Eye className="w-4 h-4 text-emerald-400" />}
+                        </button>
+
+                        <button
+                          onClick={() => handleEditDress(dress)}
+                          className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+                          title="Edit Dress"
+                        >
+                          <Edit3 className="w-4 h-4 text-amber-400" />
+                        </button>
+                      </div>
+
                       <button
-                        onClick={() => handleDeleteCategory(c.id)}
-                        className="text-red-400 hover:text-red-300 p-1"
+                        onClick={() => handleDeleteDress(dress.id)}
+                        className="p-2 rounded-lg bg-red-950 text-red-400 hover:bg-red-900"
+                        title="Delete Dress"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -636,81 +687,221 @@ export const AdminDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* 4. FILTERS MANAGEMENT TAB */}
-          {activeTab === 'filters' && (
-            <div className="space-y-6 max-w-3xl">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
-                <h3 className="text-lg font-bold font-serif text-white">Size Options Filter</h3>
-                <div className="flex flex-wrap gap-2">
-                  {(filters.sizes || []).map((s: string) => (
-                    <span key={s} className="bg-slate-800 text-slate-200 border border-slate-700 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-2">
-                      {s}
-                      <button onClick={() => handleRemoveSizeFilter(s)} className="text-red-400 hover:text-red-300">
-                        ×
+          {/* 3. CATEGORIES TAB */}
+          {activeTab === 'categories' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <p className="text-xs text-slate-400">Manage dress categories displayed across website and navigation filters.</p>
+                <button
+                  onClick={() => {
+                    setEditingCatId(null);
+                    setCatForm({ name: '', tagline: '', image: '', order: categories.length + 1, enabled: true });
+                    setShowCategoryModal(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl gradient-btn text-white text-xs font-bold flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Category</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {categories.map((cat) => (
+                  <div key={cat.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-white text-sm">{cat.name}</h4>
+                      <p className="text-xs text-slate-400">{cat.tagline || 'Category'}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleDeleteCategory(cat.id)}
+                        className="p-2 rounded-lg bg-red-950 text-red-400 hover:bg-red-900"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
-                    </span>
-                  ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 4. OFFERS & DISCOUNTS TAB */}
+          {activeTab === 'offers' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 p-6 rounded-3xl border border-slate-800">
+                <div>
+                  <h3 className="text-xl font-bold font-serif text-white flex items-center gap-2">
+                    <Percent className="w-5 h-5 text-amber-400" />
+                    <span>Category Offers & Discounts</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1 max-w-xl">
+                    Create dynamic category-based rental discount offers (e.g. 20% OFF on Bride Dresses). 
+                    Discounts apply automatically across customer prices and WhatsApp enquiries. 
+                    <strong className="text-amber-400 block mt-0.5">Note: Only ONE active offer is allowed per category at a time.</strong>
+                  </p>
                 </div>
 
-                <div className="flex gap-2 pt-2">
-                  <input
-                    type="text"
-                    placeholder="New size e.g. 3XL"
-                    value={newSize}
-                    onChange={(e) => setNewSize(e.target.value)}
-                    className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white outline-none"
-                  />
-                  <button onClick={handleAddSizeFilter} className="px-4 py-2.5 rounded-xl bg-pink-700 text-white font-bold text-xs">
-                    Add Size
-                  </button>
+                <button
+                  onClick={handleOpenAddOffer}
+                  className="px-5 py-3 rounded-xl gradient-btn text-white text-xs font-bold flex items-center gap-2 shadow-lg shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create New Offer</span>
+                </button>
+              </div>
+
+              {/* Offers Table List */}
+              <div className="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="bg-slate-950 uppercase font-bold text-slate-400 border-b border-slate-800">
+                      <tr>
+                        <th className="p-4">Offer Name</th>
+                        <th className="p-4">Target Category</th>
+                        <th className="p-4">Discount %</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {offers.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center text-slate-500 font-semibold">
+                            No promotional offers created yet. Click "Create New Offer" to add one.
+                          </td>
+                        </tr>
+                      ) : (
+                        offers.map((offer) => (
+                          <tr key={offer.id} className="hover:bg-slate-800/40 transition">
+                            <td className="p-4 font-bold text-white text-sm">
+                              {offer.name}
+                            </td>
+                            <td className="p-4 text-pink-400 font-semibold">
+                              {offer.categoryName}
+                            </td>
+                            <td className="p-4">
+                              <span className="bg-red-950 text-red-300 border border-red-800/80 px-2.5 py-1 rounded-full font-black text-xs">
+                                {offer.discountPercentage}% OFF
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              {offer.isActive ? (
+                                <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 px-3 py-1 rounded-full font-bold inline-flex items-center gap-1.5 text-[11px]">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                  Active
+                                </span>
+                              ) : (
+                                <span className="bg-slate-800 text-slate-400 border border-slate-700 px-3 py-1 rounded-full font-bold text-[11px]">
+                                  Inactive
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => handleToggleOfferStatus(offer.id, offer.isActive)}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
+                                    offer.isActive
+                                      ? 'bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700'
+                                      : 'bg-emerald-950 text-emerald-300 border-emerald-800 hover:bg-emerald-900'
+                                  }`}
+                                >
+                                  {offer.isActive ? 'Deactivate' : 'Activate'}
+                                </button>
+
+                                <button
+                                  onClick={() => handleOpenEditOffer(offer)}
+                                  className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700"
+                                  title="Edit Offer"
+                                >
+                                  <Edit3 className="w-4 h-4 text-amber-400" />
+                                </button>
+
+                                <button
+                                  onClick={() => handleDeleteOffer(offer.id)}
+                                  className="p-2 rounded-lg bg-red-950 text-red-400 hover:bg-red-900 border border-red-800/60"
+                                  title="Delete Offer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
           )}
 
-          {/* 5. IMAGE MANAGEMENT TAB */}
-          {activeTab === 'images' && (
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
-              <h3 className="text-lg font-bold font-serif text-white">Upload New Dress Images</h3>
-              <p className="text-xs text-slate-400">Supported formats: JPG, PNG, WEBP. Max size: 10MB per file.</p>
+          {/* 5. FILTERS MANAGER TAB */}
+          {activeTab === 'filters' && (
+            <div className="bg-slate-900 rounded-3xl border border-slate-800 p-6 space-y-6">
+              <h3 className="text-lg font-bold font-serif text-white">Dynamic Size Filters</h3>
 
-              <label className="border-2 border-dashed border-slate-700 hover:border-pink-500 p-8 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition">
-                <Upload className="w-8 h-8 text-pink-400 mb-2" />
-                <span className="text-xs font-bold text-white">Click to Select & Upload Files</span>
-                <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
-              </label>
+              <div className="flex gap-2 max-w-md">
+                <input
+                  type="text"
+                  placeholder="Add new size option (e.g. 3XL)..."
+                  value={newSize}
+                  onChange={(e) => setNewSize(e.target.value)}
+                  className="flex-1 p-3 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs outline-none"
+                />
+                <button
+                  onClick={handleAddSizeFilter}
+                  className="px-4 py-2.5 rounded-xl gradient-btn text-white text-xs font-bold"
+                >
+                  Add Size
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                {(filters.sizes || []).map((size: string) => (
+                  <span key={size} className="bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-300 flex items-center gap-2">
+                    <span>{size}</span>
+                    <button onClick={() => handleRemoveSizeFilter(size)} className="text-red-400 hover:text-red-300 font-bold">×</button>
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* 6. BOOKINGS MANAGEMENT TAB */}
+          {/* 6. BOOKINGS TAB */}
           {activeTab === 'bookings' && (
-            <div className="space-y-6">
-              <div className="bg-slate-900 rounded-3xl border border-slate-800 p-6 space-y-4">
-                <h3 className="text-lg font-bold font-serif text-white">WhatsApp Enquiry & Rental Bookings</h3>
-                
-                <div className="space-y-4">
-                  {bookings.map((b) => (
-                    <div key={b.id} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
-                      {b.hasDateOverlapWarning && (
-                        <div className="p-3 bg-red-950/80 border border-red-700/60 rounded-xl text-red-200 text-xs flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 text-red-400" />
-                          <span>DATE OVERLAP WARNING: Another active booking exists for this dress on overlapping dates!</span>
-                        </div>
-                      )}
-
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                        <div>
-                          <h4 className="font-bold text-white text-base font-serif">{b.dressName}</h4>
-                          <p className="text-xs text-slate-400">Customer: <strong className="text-pink-400">{b.customerName}</strong> ({b.customerPhone})</p>
-                          <p className="text-xs text-slate-400 mt-0.5">Rental Dates: <span className="text-amber-300 font-bold">{b.startDate} → {b.returnDate}</span> ({b.durationDays} Days)</p>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-slate-400 font-bold">Status:</label>
+            <div className="bg-slate-900 rounded-3xl border border-slate-800 p-6 space-y-6">
+              <h3 className="text-lg font-bold font-serif text-white">Rental Enquiries & Bookings</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-slate-950 uppercase font-bold text-slate-400 border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">Customer</th>
+                      <th className="p-3">Outfit</th>
+                      <th className="p-3">Duration</th>
+                      <th className="p-3">Rental Dates</th>
+                      <th className="p-3">Est. Rent</th>
+                      <th className="p-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {bookings.map((b) => (
+                      <tr key={b.id}>
+                        <td className="p-3 font-bold text-white">
+                          {b.customerName}
+                          <span className="block text-[10px] text-slate-500 font-normal">{b.customerPhone}</span>
+                        </td>
+                        <td className="p-3 text-pink-400">{b.dressName}</td>
+                        <td className="p-3">{b.durationDays || 4} Days</td>
+                        <td className="p-3 text-slate-400">{b.startDate} → {b.returnDate}</td>
+                        <td className="p-3 font-bold text-amber-400">₹{b.rentalPrice}</td>
+                        <td className="p-3">
                           <select
                             value={b.status}
                             onChange={(e) => handleUpdateBookingStatus(b.id, e.target.value)}
-                            className="bg-slate-900 border border-slate-700 text-xs font-bold text-amber-300 p-2 rounded-xl outline-none"
+                            className="bg-slate-950 border border-slate-800 text-xs font-bold text-amber-300 p-1.5 rounded-lg outline-none"
                           >
                             <option value="Pending">Pending</option>
                             <option value="Confirmed">Confirmed</option>
@@ -719,23 +910,23 @@ export const AdminDashboard: React.FC = () => {
                             <option value="Returned">Returned</option>
                             <option value="Cancelled">Cancelled</option>
                           </select>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
 
-          {/* 7. WEBSITE CONTENT SETTINGS TAB */}
+          {/* 7. SETTINGS / CONTENT TAB */}
           {activeTab === 'settings' && (
-            <form onSubmit={handleSaveSettings} className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-6 max-w-4xl">
-              <h3 className="text-lg font-bold font-serif text-white">Website Content & Shop Configuration</h3>
+            <form onSubmit={handleSaveSettings} className="bg-slate-900 rounded-3xl border border-slate-800 p-6 space-y-6 text-xs max-w-3xl">
+              <h3 className="text-lg font-bold font-serif text-white">Website Content & Boutique Info</h3>
 
-              <div className="grid grid-cols-2 gap-4 text-xs">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-400 font-bold mb-1">Shop Name</label>
+                  <label className="block text-slate-400 font-bold mb-1">Shop Display Name</label>
                   <input
                     type="text"
                     value={settings.shopName || ''}
@@ -744,7 +935,7 @@ export const AdminDashboard: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 font-bold mb-1">WhatsApp Number</label>
+                  <label className="block text-slate-400 font-bold mb-1">WhatsApp Number (e.g. 8489166899)</label>
                   <input
                     type="text"
                     value={settings.whatsappNumber || ''}
@@ -754,7 +945,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="text-xs">
+              <div>
                 <label className="block text-slate-400 font-bold mb-1">Boutique Physical Address</label>
                 <input
                   type="text"
@@ -764,8 +955,8 @@ export const AdminDashboard: React.FC = () => {
                 />
               </div>
 
-              <div className="text-xs">
-                <label className="block text-slate-400 font-bold mb-1">Homepage Hero Title</label>
+              <div>
+                <label className="block text-slate-400 font-bold mb-1">Hero Title Heading</label>
                 <input
                   type="text"
                   value={settings.heroTitle || ''}
@@ -776,9 +967,9 @@ export const AdminDashboard: React.FC = () => {
 
               <button
                 type="submit"
-                className="px-8 py-3.5 rounded-xl gradient-btn text-white font-bold text-xs shadow-lg"
+                className="gradient-btn text-white font-bold py-3 px-8 rounded-xl shadow-lg"
               >
-                Save & Update Website Live
+                Save & Publish Settings
               </button>
             </form>
           )}
@@ -789,10 +980,10 @@ export const AdminDashboard: React.FC = () => {
       {/* Add / Edit Dress Modal */}
       {showDressModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl my-8">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 space-y-4 my-8 shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <h3 className="text-xl font-bold font-serif text-white">
-                {editingDressId ? 'Edit Dress' : 'Add New Dress'}
+                {editingDressId ? 'Edit Dress Details' : 'Add New Rental Dress'}
               </h3>
               <button onClick={() => setShowDressModal(false)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -971,6 +1162,108 @@ export const AdminDashboard: React.FC = () => {
                 className="w-full gradient-btn text-white py-3 rounded-xl font-bold mt-2"
               >
                 Save Category
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Offer Modal */}
+      {showOfferModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl my-8">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="text-xl font-bold font-serif text-white flex items-center gap-2">
+                <Percent className="w-5 h-5 text-amber-400" />
+                <span>{editingOfferId ? 'Edit Offer' : 'Create Category Offer'}</span>
+              </h3>
+              <button onClick={() => setShowOfferModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {offerModalError && (
+              <div className="p-3 bg-red-950/90 border border-red-800 rounded-xl flex items-start gap-2 text-xs text-red-200">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <span>{offerModalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveOffer} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-400 font-bold mb-1">
+                  Offer Name <span className="text-pink-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={offerForm.name}
+                  onChange={(e) => setOfferForm({ ...offerForm, name: e.target.value })}
+                  placeholder="e.g. Festive Bridal Special 20% OFF"
+                  className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white outline-none focus:border-pink-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-bold mb-1">
+                  Category <span className="text-pink-400">*</span>
+                </label>
+                <select
+                  value={offerForm.categoryId}
+                  onChange={(e) => {
+                    const selectedCat = categories.find((c) => c.id === e.target.value);
+                    setOfferForm({
+                      ...offerForm,
+                      categoryId: e.target.value,
+                      categoryName: selectedCat ? selectedCat.name : offerForm.categoryName,
+                    });
+                  }}
+                  className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white outline-none focus:border-pink-500"
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-bold mb-1">
+                  Discount Percentage (% OFF) <span className="text-pink-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  required
+                  value={offerForm.discountPercentage}
+                  onChange={(e) => setOfferForm({ ...offerForm, discountPercentage: Number(e.target.value) })}
+                  placeholder="e.g. 20"
+                  className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white outline-none focus:border-pink-500"
+                />
+              </div>
+
+              <div className="pt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-slate-300 font-bold">
+                  <input
+                    type="checkbox"
+                    checked={offerForm.isActive}
+                    onChange={(e) => setOfferForm({ ...offerForm, isActive: e.target.checked })}
+                    className="w-4 h-4 accent-pink-600 rounded"
+                  />
+                  <span>Active Offer (Enable discount for customers)</span>
+                </label>
+                <p className="text-[11px] text-slate-500 mt-1 pl-6">
+                  Note: If activated, any existing active offer for this category must be deactivated first.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full gradient-btn text-white py-3.5 rounded-xl font-bold shadow-lg mt-2"
+              >
+                {editingOfferId ? 'Update Offer' : 'Publish Offer'}
               </button>
             </form>
           </div>

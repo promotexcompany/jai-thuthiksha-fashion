@@ -31,6 +31,11 @@ export const SHOP_CONFIG = {
   SHOP_ADDRESS: 'Karur Bypass road,Gandhiji Street,Sakthi Nagar,Erode,638002',
 
   /**
+   * Shop Email Address.
+   */
+  SHOP_EMAIL: import.meta.env.VITE_SHOP_EMAIL || 'sakthimurugesan1986@gmail.com',
+
+  /**
    * Default Admin Login Username (can be overridden in .env via VITE_ADMIN_USERNAME).
    */
   ADMIN_USERNAME: import.meta.env.VITE_ADMIN_USERNAME || 'admin@jaithuthiksha.com',
@@ -39,6 +44,18 @@ export const SHOP_CONFIG = {
    * Default Admin Login Password (can be overridden in .env via VITE_ADMIN_PASSWORD).
    */
   ADMIN_PASSWORD: import.meta.env.VITE_ADMIN_PASSWORD || 'Admin@JTF2026',
+};
+
+/**
+ * Safely cleans and formats the WhatsApp phone number to ensure
+ * Indian 10-digit mobile numbers are prepended with country code '91' for wa.me deep links.
+ */
+export const getCleanWhatsAppNumber = (phoneStr: string = SHOP_CONFIG.SHOP_WHATSAPP_NUMBER): string => {
+  let cleaned = phoneStr.replace(/[^0-9]/g, '');
+  if (cleaned.length === 10) {
+    cleaned = '91' + cleaned;
+  }
+  return cleaned;
 };
 
 /**
@@ -54,6 +71,27 @@ export const calculateReturnDate = (startDateStr: string, durationDays: number):
 };
 
 /**
+ * Safely generates WhatsApp chat URL for general contact form enquiries formatted as:
+ * https://wa.me/COUNTRY_CODE_PHONE_NUMBER?text=ENCODED_MESSAGE
+ */
+export const generateWhatsAppContactUrl = (params: {
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+}): string => {
+  const cleanPhone = getCleanWhatsAppNumber();
+  let text = `Hello ${SHOP_CONFIG.SHOP_NAME},\n`;
+  text += `I have a general enquiry from your website:\n\n`;
+  text += `Name: ${params.name.trim()}\n`;
+  text += `Email: ${params.email.trim()}\n`;
+  text += `Phone: ${params.phone.trim()}\n`;
+  text += `Message:\n${params.message.trim()}\n`;
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+};
+
+/**
  * Safely generates WhatsApp chat URL formatted as:
  * https://wa.me/COUNTRY_CODE_PHONE_NUMBER?text=ENCODED_MESSAGE
  */
@@ -65,6 +103,8 @@ export const generateWhatsAppBookingUrl = (params: {
   returnDate: string;
   selectedSize?: string;
   durationDays?: number;
+  originalPrice?: number;
+  discountPercentage?: number;
   rentalPrice?: number;
 }): string => {
   const {
@@ -75,11 +115,13 @@ export const generateWhatsAppBookingUrl = (params: {
     returnDate,
     selectedSize,
     durationDays,
+    originalPrice,
+    discountPercentage,
     rentalPrice,
   } = params;
 
-  // Clean phone number: remove any non-digit characters
-  const cleanPhone = SHOP_CONFIG.SHOP_WHATSAPP_NUMBER.replace(/[^0-9]/g, '');
+  // Clean phone number: ensure country code 91 if 10 digits
+  const cleanPhone = getCleanWhatsAppNumber();
 
   // Message body formatted cleanly as requested
   let message = `Hello ${SHOP_CONFIG.SHOP_NAME},\nI am interested in booking:\n`;
@@ -96,9 +138,15 @@ export const generateWhatsAppBookingUrl = (params: {
   }
   message += `Rental Date: ${rentalDate}\n`;
   message += `Return Date: ${returnDate}\n`;
-  if (rentalPrice) {
+
+  if (discountPercentage && discountPercentage > 0 && originalPrice) {
+    message += `Original Rental Price: ₹${originalPrice.toLocaleString('en-IN')}\n`;
+    message += `Offer: ${discountPercentage}% OFF\n`;
+    message += `Final Rental Price: ₹${(rentalPrice || 0).toLocaleString('en-IN')}\n`;
+  } else if (rentalPrice) {
     message += `Estimated Rental Charge: ₹${rentalPrice.toLocaleString('en-IN')}\n`;
   }
+
   message += `\nPlease share availability, rental charges, advance amount, and booking details.`;
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;

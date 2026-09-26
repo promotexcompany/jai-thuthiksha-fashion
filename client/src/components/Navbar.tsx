@@ -1,19 +1,15 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Calendar, Search, Menu, X, Sparkles, PhoneCall, User, LogOut } from 'lucide-react';
+import { Calendar, Search, Menu, X, Sparkles, PhoneCall, User, LogOut } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 import { SHOP_CONFIG } from '../config/shopConfig';
 import { useCustomerAuth } from '../context/CustomerAuthContext';
 
 interface NavbarProps {
-  cartCount: number;
-  onOpenCart: () => void;
   onOpenAppointment: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  cartCount,
-  onOpenCart,
   onOpenAppointment,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -118,19 +114,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Book Trial</span>
             </button>
 
-            {/* Cart Drawer Trigger */}
-            <button
-              onClick={onOpenCart}
-              className="relative p-2.5 rounded-full gradient-btn text-white shadow-md hover:shadow-lg transition flex items-center gap-2"
-              title="Rental Bag"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-pink-950 text-xs font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-                  {cartCount}
-                </span>
-              )}
-            </button>
+
 
             {/* Account Dynamic Authentication Button */}
             {isAuthenticated && customerUser ? (

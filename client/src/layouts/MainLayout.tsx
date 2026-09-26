@@ -1,39 +1,37 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
-import { CartDrawer } from '../components/CartDrawer';
 import { AppointmentModal } from '../components/AppointmentModal';
 import { QuickViewModal } from '../components/QuickViewModal';
-import type { CartItem, Product } from '../types/fashion';
+import type { CategoryOffer, Product } from '../types/fashion';
+import { api } from '../services/api';
+
+export interface MainLayoutContextType {
+  onQuickView: (product: Product) => void;
+  onOpenAppointment: () => void;
+  offers: CategoryOffer[];
+  refreshOffers: () => void;
+}
 
 export const MainLayout: React.FC = () => {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAppointmentOpen, setIsAppointmentOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [offers, setOffers] = useState<CategoryOffer[]>([]);
 
-  const handleAddToCart = (
-    product: Product,
-    selectedSize: string,
-    startDate: string,
-    durationDays: 4 | 8
-  ) => {
-    const price = durationDays === 4 ? product.rentalPrice4Days : product.rentalPrice8Days;
-    const newItem: CartItem = {
-      product,
-      selectedSize,
-      startDate: startDate || new Date().toISOString().split('T')[0],
-      durationDays,
-      totalPrice: price,
-    };
+  useEffect(() => {
+    fetchOffers();
+  }, []);
 
-    setCartItems((prev) => [...prev, newItem]);
-    setIsCartOpen(true);
-  };
-
-  const handleRemoveCartItem = (index: number) => {
-    setCartItems((prev) => prev.filter((_, i) => i !== index));
+  const fetchOffers = async () => {
+    try {
+      const data = await api.getPublicOffers();
+      if (Array.isArray(data)) {
+        setOffers(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch public offers:', err);
+    }
   };
 
   return (
@@ -41,8 +39,6 @@ export const MainLayout: React.FC = () => {
       
       {/* Navigation Header */}
       <Navbar
-        cartCount={cartItems.length}
-        onOpenCart={() => setIsCartOpen(true)}
         onOpenAppointment={() => setIsAppointmentOpen(true)}
       />
 
@@ -50,21 +46,14 @@ export const MainLayout: React.FC = () => {
       <main className="flex-1">
         <Outlet context={{
           onQuickView: (product: Product) => setQuickViewProduct(product),
-          onAddToCart: handleAddToCart,
-          onOpenAppointment: () => setIsAppointmentOpen(true)
+          onOpenAppointment: () => setIsAppointmentOpen(true),
+          offers,
+          refreshOffers: fetchOffers
         }} />
       </main>
 
       {/* Footer */}
       <Footer />
-
-      {/* Slide-over Cart Drawer */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cartItems={cartItems}
-        onRemoveItem={handleRemoveCartItem}
-      />
 
       {/* Trial Appointment Booking Modal */}
       <AppointmentModal
@@ -76,7 +65,7 @@ export const MainLayout: React.FC = () => {
       <QuickViewModal
         product={quickViewProduct}
         onClose={() => setQuickViewProduct(null)}
-        onAddToCart={handleAddToCart}
+        offers={offers}
       />
     </div>
   );

@@ -262,6 +262,29 @@ export const api = {
     return data;
   },
 
+  // Contact Form
+  async sendContactForm(contactData: { name: string; email: string; phone: string; message: string }) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/contact`, {
+        method: 'POST',
+        headers: getCustomerHeaders(),
+        body: JSON.stringify(contactData)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to submit contact enquiry.');
+      }
+      return data;
+    } catch (err: any) {
+      console.warn('[Contact API] Failed to reach backend, proceeding with frontend contact handling:', err.message);
+      return {
+        success: true,
+        message: 'Offline mode / direct WhatsApp integration active',
+        fallback: true
+      };
+    }
+  },
+
   // Settings
   async getSettings() {
     try {
@@ -281,6 +304,70 @@ export const api = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to update settings');
+    return data;
+  },
+
+  // Offers / Discounts
+  async getPublicOffers() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/offers`);
+      if (!res.ok) throw new Error('Failed to fetch active offers');
+      return await res.json();
+    } catch (err) {
+      console.warn('Backend server unreachable for offers', err);
+      return [];
+    }
+  },
+
+  async getAllAdminOffers() {
+    const res = await fetch(`${API_BASE_URL}/offers/admin/all`, {
+      headers: getAdminHeaders()
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch admin offers');
+    return data;
+  },
+
+  async addOffer(offerData: any) {
+    const res = await fetch(`${API_BASE_URL}/offers/admin/add`, {
+      method: 'POST',
+      headers: getAdminHeaders(),
+      body: JSON.stringify(offerData)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Failed to create offer');
+    return data;
+  },
+
+  async updateOffer(id: string, offerData: any) {
+    const res = await fetch(`${API_BASE_URL}/offers/admin/${id}`, {
+      method: 'PUT',
+      headers: getAdminHeaders(),
+      body: JSON.stringify(offerData)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Failed to update offer');
+    return data;
+  },
+
+  async toggleOfferStatus(id: string, isActive?: boolean) {
+    const res = await fetch(`${API_BASE_URL}/offers/admin/${id}/toggle`, {
+      method: 'PATCH',
+      headers: getAdminHeaders(),
+      body: JSON.stringify({ isActive })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Failed to toggle offer status');
+    return data;
+  },
+
+  async deleteOffer(id: string) {
+    const res = await fetch(`${API_BASE_URL}/offers/admin/${id}`, {
+      method: 'DELETE',
+      headers: getAdminHeaders()
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Failed to delete offer');
     return data;
   },
 

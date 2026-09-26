@@ -1,8 +1,9 @@
 export interface Product {
   id: string;
   name: string;
-  category: 'bridal' | 'sarees' | 'indo-western' | 'menswear' | 'anarkalis' | 'jewelry';
+  category: string;
   categoryLabel: string;
+  categoryId?: string;
   designer: string;
   retailPrice: number;
   rentalPrice4Days: number;
@@ -33,12 +34,15 @@ export interface Category {
   enabled?: boolean;
 }
 
-export interface CartItem {
-  product: Product;
-  selectedSize: string;
-  startDate: string;
-  durationDays: 4 | 8;
-  totalPrice: number;
+export interface CategoryOffer {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName: string;
+  discountPercentage: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Review {

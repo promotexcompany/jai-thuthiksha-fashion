@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Sparkles, Calendar, Search, ArrowRight, CheckCircle2, Award } from 'lucide-react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import { Sparkles, Calendar, Search, ArrowRight, CheckCircle2, Award, Tag } from 'lucide-react';
+import type { CategoryOffer } from '../types/fashion';
+import type { MainLayoutContextType } from '../layouts/MainLayout';
 
 interface HeroSectionProps {
   onOpenAppointment: () => void;
@@ -8,8 +10,13 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAppointment }) => {
   const navigate = useNavigate();
+  const context = useOutletContext<MainLayoutContextType>();
+  const offers: CategoryOffer[] = context?.offers || [];
+
   const [selectedCategory, setSelectedCategory] = useState('');
   const [eventDate, setEventDate] = useState('');
+
+  const activeOffers = offers.filter((o) => o.isActive);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,17 +40,27 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAppointment }) =
           {/* Left Column: Text & CTA */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
             
-            <div className="inline-flex items-center gap-2 bg-pink-100/80 border border-pink-300/60 text-pink-900 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
-              <Sparkles className="w-4 h-4 text-amber-600 animate-spin" />
-              <span>South India's Most Trusted Luxury Designer Rental Boutique</span>
-            </div>
+            {/* Dynamic Promotional Banner for Active Offers */}
+            {activeOffers.length > 0 ? (
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-100 to-amber-100 border border-pink-300 text-pink-950 px-4 py-1.5 rounded-full text-xs font-extrabold shadow-sm flex-wrap justify-center lg:justify-start">
+                <Tag className="w-4 h-4 text-red-600 animate-pulse" />
+                <span>
+                  🔥 Active Offers: {activeOffers.map((o) => `${o.name} (${o.discountPercentage}% OFF on ${o.categoryName})`).join(' • ')}
+                </span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 bg-pink-100/80 border border-pink-300/60 text-pink-900 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
+                <Sparkles className="w-4 h-4 text-amber-600 animate-spin" />
+                <span>South India's Most Trusted Luxury Designer Rental Boutique</span>
+              </div>
+            )}
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold font-serif text-slate-900 tracking-tight leading-tight">
               Wear the <span className="gradient-text">Luxury Designer</span> You Love for Your Special Day.
             </h1>
 
             <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
-              Rent royal bridal lehengas, handwoven Kanjeevaram silk sarees, and groom sherwanis at up to 80% off retail prices. Includes custom alteration and free dry-cleaned delivery.
+              Rent royal bridal lehengas, handwoven Kanjeevaram silk sarees, and groom sherwanis at accessible rental prices. Includes custom alteration and sanitized delivery.
             </p>
 
             {/* Interactive Search & Filter Bar */}
@@ -61,11 +78,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAppointment }) =
                   className="w-full bg-gray-50 border border-gray-200 text-gray-800 text-xs font-semibold rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-pink-500"
                 >
                   <option value="">All Collections</option>
-                  <option value="bridal">Bridal Lehengas</option>
-                  <option value="sarees">Silk Sarees</option>
-                  <option value="indo-western">Indo-Western & Gowns</option>
-                  <option value="menswear">Groom Sherwanis</option>
-                  <option value="jewelry">Bridal Jewelry</option>
+                  <option value="cat-1">Bride Dresses</option>
+                  <option value="cat-2">Silk Sarees</option>
+                  <option value="cat-3">Maternity Wear</option>
+                  <option value="cat-4">Photoshoot Dresses</option>
+                  <option value="cat-5">Traditional Wear</option>
+                  <option value="cat-6">Party Wear</option>
+                  <option value="cat-7">Jewelry & Accessories</option>
                 </select>
               </div>
 
