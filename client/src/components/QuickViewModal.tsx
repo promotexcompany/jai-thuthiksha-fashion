@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { X, Star, Calendar, ShieldCheck, Sparkles, Heart, MessageSquare, User } from 'lucide-react';
 import type { Product } from '../types/fashion';
 import { calculateReturnDate, generateWhatsAppBookingUrl } from '../config/shopConfig';
+import { api } from '../services/api';
+import { useCustomerAuth } from '../context/CustomerAuthContext';
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -13,9 +15,11 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
   product,
   onClose,
 }) => {
+  const { customerUser } = useCustomerAuth();
+
   if (!product) return null;
 
-  const [customerName, setCustomerName] = useState('');
+  const [customerName, setCustomerName] = useState(customerUser?.name || '');
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] || 'M');
   const [durationDays, setDurationDays] = useState<4 | 8>(4);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -24,9 +28,24 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
   const currentRentalPrice = durationDays === 4 ? product.rentalPrice4Days : product.rentalPrice8Days;
   const returnDate = calculateReturnDate(startDate, durationDays);
 
-  const handleBookViaWhatsApp = () => {
+  const handleBookViaWhatsApp = async () => {
+    const finalCustomerName = customerName.trim() || customerUser?.name || 'WhatsApp Customer';
+
+    // Log enquiry into Supabase bookings table
+    await api.logEnquiry({
+      customerName: finalCustomerName,
+      customerPhone: 'Via WhatsApp',
+      dressId: product.id,
+      dressName: product.name,
+      category: product.categoryLabel || product.category,
+      startDate: startDate,
+      returnDate: returnDate,
+      durationDays: durationDays,
+      rentalPrice: currentRentalPrice
+    });
+
     const whatsappUrl = generateWhatsAppBookingUrl({
-      customerName: customerName.trim() || undefined,
+      customerName: finalCustomerName,
       dressName: product.name,
       category: product.categoryLabel,
       rentalDate: startDate,
@@ -207,7 +226,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
             <div className="space-y-3 pt-2">
               <button
                 onClick={handleBookViaWhatsApp}
-                className="w-full py-3.5 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 shadow-lg transition"
+                className="w-full py-3.5 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 shadow-lg transition cursor-pointer"
               >
                 <MessageSquare className="w-5 h-5 fill-current" />
                 <span>Book Rental on WhatsApp</span>

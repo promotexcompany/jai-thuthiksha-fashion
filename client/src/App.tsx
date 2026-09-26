@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AdminAuthProvider } from './context/AdminAuthContext';
+import { CustomerAuthProvider } from './context/CustomerAuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { MainLayout } from './layouts/MainLayout';
 import Home from './pages/Home';
@@ -13,32 +14,34 @@ import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
-    <AdminAuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public Customer Routes */}
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Home />} />
-            <Route path="catalogue" element={<Catalogue />} />
-            <Route path="about" element={<About />} />
-            <Route path="contact" element={<Contact />} />
-            <Route path="login" element={<Login />} />
-            <Route path="register" element={<Register />} />
-          </Route>
+    <CustomerAuthProvider>
+      <AdminAuthProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public Customer Routes */}
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Home />} />
+              <Route path="catalogue" element={<Catalogue />} />
+              <Route path="about" element={<About />} />
+              <Route path="contact" element={<Contact />} />
+              <Route path="login" element={<Login />} />
+              <Route path="register" element={<Register />} />
+            </Route>
 
-          {/* Admin Routes */}
-          <Route path="/admin/login" element={<AdminLogin />} />
-          
-          <Route element={<ProtectedRoute />}>
-            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          </Route>
+            {/* Admin Routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            
+            <Route element={<ProtectedRoute />}>
+              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            </Route>
 
-          {/* Catch-all fallback redirect */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AdminAuthProvider>
+            {/* Catch-all fallback redirect */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AdminAuthProvider>
+    </CustomerAuthProvider>
   );
 }
 

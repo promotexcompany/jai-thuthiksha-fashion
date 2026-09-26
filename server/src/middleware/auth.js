@@ -1,9 +1,9 @@
 import jwt from 'jsonwebtoken';
-import { readDb } from '../db.js';
+import { supabase } from '../config/supabase.js';
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'jtf_luxury_fashion_rental_secret_key_2026';
 
-export const verifyToken = (req, res, next) => {
+export const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Authentication required. No token provided.' });
@@ -13,12 +13,15 @@ export const verifyToken = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // Verify user exists in database & fetch current role from backend
-    const db = readDb();
-    const user = db.users.find(u => u.id === decoded.id || u.email === decoded.email);
+    // Fetch user from Supabase to verify existence and active role
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, email, name, role')
+      .eq('id', decoded.id)
+      .maybeSingle();
 
-    if (!user) {
-      return res.status(401).json({ error: 'User account no longer exists.' });
+    if (error || !user) {
+      return res.status(401).json({ error: 'User account no longer exists or session expired.' });
     }
 
     req.user = {
@@ -42,3 +45,4 @@ export const requireAdmin = (req, res, next) => {
   }
   next();
 };
+

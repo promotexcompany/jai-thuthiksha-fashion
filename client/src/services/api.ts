@@ -1,7 +1,23 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('jtf_admin_token');
+const getCustomerToken = () => {
+  return localStorage.getItem('jtf_customer_token');
+};
+
+const getAdminToken = () => {
+  return localStorage.getItem('jtf_admin_token');
+};
+
+const getCustomerHeaders = () => {
+  const token = getCustomerToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+};
+
+const getAdminHeaders = () => {
+  const token = getAdminToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -9,24 +25,56 @@ const getAuthHeaders = () => {
 };
 
 export const api = {
-  // Authentication
-  async login(email: string, password: string) {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json();
+  // Authentication - Customer & Admin
+  async register(name: string, email: string, pass: string) {
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password: pass })
+      });
+    } catch (err) {
+      throw new Error('Backend API server is unreachable. Please check server connection.');
+    }
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Registration failed');
+    return data;
+  },
+
+  async login(email: string, pass: string) {
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass })
+      });
+    } catch (err) {
+      throw new Error('Backend API server is unreachable. Please check server connection.');
+    }
+
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Login failed');
     return data;
   },
 
   async getProfile() {
     const res = await fetch(`${API_BASE_URL}/auth/me`, {
-      headers: getAuthHeaders()
+      headers: getAdminHeaders()
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to fetch user profile');
+    return data;
+  },
+
+  async getCustomerProfile() {
+    const res = await fetch(`${API_BASE_URL}/auth/me`, {
+      headers: getCustomerHeaders()
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch customer profile');
     return data;
   },
 
@@ -37,16 +85,16 @@ export const api = {
       if (!res.ok) throw new Error('Failed to fetch dresses');
       return await res.json();
     } catch (err) {
-      console.warn('Backend server unreachable, using offline fallback', err);
+      console.warn('Backend server unreachable for dresses', err);
       return null;
     }
   },
 
   async getAllAdminDresses() {
     const res = await fetch(`${API_BASE_URL}/dresses/admin/all`, {
-      headers: getAuthHeaders()
+      headers: getAdminHeaders()
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to fetch admin dresses');
     return data;
   },
@@ -54,10 +102,10 @@ export const api = {
   async addDress(dressData: any) {
     const res = await fetch(`${API_BASE_URL}/dresses/admin/add`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: getAdminHeaders(),
       body: JSON.stringify(dressData)
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to add dress');
     return data;
   },
@@ -65,10 +113,10 @@ export const api = {
   async updateDress(id: string, dressData: any) {
     const res = await fetch(`${API_BASE_URL}/dresses/admin/${id}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: getAdminHeaders(),
       body: JSON.stringify(dressData)
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to update dress');
     return data;
   },
@@ -76,10 +124,10 @@ export const api = {
   async toggleDressStatus(id: string, updates: { isAvailable?: boolean; isHidden?: boolean }) {
     const res = await fetch(`${API_BASE_URL}/dresses/admin/${id}/toggle`, {
       method: 'PATCH',
-      headers: getAuthHeaders(),
+      headers: getAdminHeaders(),
       body: JSON.stringify(updates)
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to toggle dress status');
     return data;
   },
@@ -87,9 +135,9 @@ export const api = {
   async deleteDress(id: string) {
     const res = await fetch(`${API_BASE_URL}/dresses/admin/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers: getAdminHeaders()
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to delete dress');
     return data;
   },
@@ -101,15 +149,16 @@ export const api = {
       if (!res.ok) throw new Error('Failed to fetch categories');
       return await res.json();
     } catch (err) {
+      console.warn('Backend server unreachable for categories', err);
       return null;
     }
   },
 
   async getAllAdminCategories() {
     const res = await fetch(`${API_BASE_URL}/categories/admin/all`, {
-      headers: getAuthHeaders()
+      headers: getAdminHeaders()
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to fetch admin categories');
     return data;
   },
@@ -117,10 +166,10 @@ export const api = {
   async addCategory(catData: any) {
     const res = await fetch(`${API_BASE_URL}/categories/admin/add`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: getAdminHeaders(),
       body: JSON.stringify(catData)
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to add category');
     return data;
   },
@@ -128,10 +177,10 @@ export const api = {
   async updateCategory(id: string, catData: any) {
     const res = await fetch(`${API_BASE_URL}/categories/admin/${id}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: getAdminHeaders(),
       body: JSON.stringify(catData)
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to update category');
     return data;
   },
@@ -139,9 +188,9 @@ export const api = {
   async deleteCategory(id: string) {
     const res = await fetch(`${API_BASE_URL}/categories/admin/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers: getAdminHeaders()
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to delete category');
     return data;
   },
@@ -160,10 +209,10 @@ export const api = {
   async updateFilters(filterData: any) {
     const res = await fetch(`${API_BASE_URL}/filters/admin/update`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: getAdminHeaders(),
       body: JSON.stringify(filterData)
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to update filters');
     return data;
   },
@@ -173,7 +222,7 @@ export const api = {
     try {
       const res = await fetch(`${API_BASE_URL}/bookings/enquire`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCustomerHeaders(),
         body: JSON.stringify(bookingData)
       });
       return await res.json();
@@ -185,9 +234,9 @@ export const api = {
 
   async getAllAdminBookings() {
     const res = await fetch(`${API_BASE_URL}/bookings/admin/all`, {
-      headers: getAuthHeaders()
+      headers: getAdminHeaders()
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to fetch admin bookings');
     return data;
   },
@@ -195,10 +244,10 @@ export const api = {
   async updateBooking(id: string, updates: any) {
     const res = await fetch(`${API_BASE_URL}/bookings/admin/${id}`, {
       method: 'PATCH',
-      headers: getAuthHeaders(),
+      headers: getAdminHeaders(),
       body: JSON.stringify(updates)
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to update booking');
     return data;
   },
@@ -206,9 +255,9 @@ export const api = {
   async deleteBooking(id: string) {
     const res = await fetch(`${API_BASE_URL}/bookings/admin/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers: getAdminHeaders()
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to delete booking');
     return data;
   },
@@ -227,17 +276,17 @@ export const api = {
   async updateSettings(settingsData: any) {
     const res = await fetch(`${API_BASE_URL}/settings/admin/update`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: getAdminHeaders(),
       body: JSON.stringify(settingsData)
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to update settings');
     return data;
   },
 
   // Upload Images
   async uploadImages(files: FileList | File[]) {
-    const token = localStorage.getItem('jtf_admin_token');
+    const token = getAdminToken();
     const formData = new FormData();
     Array.from(files).forEach((file) => {
       formData.append('images', file);
@@ -249,7 +298,7 @@ export const api = {
       body: formData
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Image upload failed');
     return data; // { urls: [...] }
   }

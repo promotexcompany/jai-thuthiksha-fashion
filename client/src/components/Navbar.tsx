@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Calendar, Search, Menu, X, Sparkles, PhoneCall, User } from 'lucide-react';
+import { ShoppingBag, Calendar, Search, Menu, X, Sparkles, PhoneCall, User, LogOut } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 import { SHOP_CONFIG } from '../config/shopConfig';
+import { useCustomerAuth } from '../context/CustomerAuthContext';
 
 interface NavbarProps {
   cartCount: number;
@@ -17,6 +18,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { customerUser, isAuthenticated, logout } = useCustomerAuth();
+
+  const handleCustomerLogout = () => {
+    logout();
+  };
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -29,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full shadow-sm bg-white/95 backdrop-blur-md border-b border-pink-100">
-      
+
       {/* Top Banner */}
       <div className="bg-gradient-to-r from-pink-900 via-rose-900 to-amber-900 text-white py-2 px-4 text-xs font-medium text-center flex items-center justify-between">
         <div className="hidden sm:flex items-center gap-2 text-pink-200">
@@ -45,14 +51,14 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         <div className="hidden sm:flex items-center gap-4 text-pink-200 text-[11px]">
-          <span>Flagship Boutique: T. Nagar, Chennai</span>
+          <span>Jaithuthiksha Fashion - Karur Bypass Road, Erode</span>
         </div>
       </div>
 
       {/* Main Navbar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          
+
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
             <div className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 flex items-center justify-center p-0.5 rounded-xl bg-pink-50/50 group-hover:scale-105 transition">
@@ -78,11 +84,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Link
                 key={link.path}
                 to={link.path}
-                className={`text-sm font-semibold transition-colors duration-200 relative py-1 ${
-                  isActive(link.path)
-                    ? 'text-pink-700 font-bold'
-                    : 'text-gray-700 hover:text-pink-600'
-                }`}
+                className={`text-sm font-semibold transition-colors duration-200 relative py-1 ${isActive(link.path)
+                  ? 'text-pink-700 font-bold'
+                  : 'text-gray-700 hover:text-pink-600'
+                  }`}
               >
                 {link.name}
                 {isActive(link.path) && (
@@ -94,7 +99,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-3 sm:space-x-4">
-            
+
             {/* Catalogue Search Link */}
             <Link
               to="/catalogue"
@@ -127,14 +132,32 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            {/* Account / Login Link */}
-            <Link
-              to="/login"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-gray-700 hover:text-pink-700 text-xs font-semibold hover:bg-pink-50 transition"
-            >
-              <User className="w-4 h-4 text-pink-600" />
-              <span>Sign In</span>
-            </Link>
+            {/* Account Dynamic Authentication Button */}
+            {isAuthenticated && customerUser ? (
+              <div className="hidden sm:flex items-center gap-3 bg-pink-50/70 border border-pink-200/80 px-3 py-1.5 rounded-xl">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-gray-800">
+                  <User className="w-4 h-4 text-pink-600" />
+                  <span>{customerUser.name?.split(' ')[0] || 'Account'}</span>
+                </div>
+
+                <button
+                  onClick={handleCustomerLogout}
+                  className="text-xs font-semibold text-gray-500 hover:text-red-600 transition flex items-center gap-1 border-l border-pink-200 pl-2"
+                  title="Logout Customer Account"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-gray-700 hover:text-pink-700 text-xs font-bold hover:bg-pink-50 transition border border-gray-200"
+              >
+                <User className="w-4 h-4 text-pink-600" />
+                <span>Sign In</span>
+              </Link>
+            )}
 
             {/* Mobile menu button */}
             <button
@@ -157,11 +180,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               key={link.path}
               to={link.path}
               onClick={() => setMobileMenuOpen(false)}
-              className={`block py-2 text-base font-medium rounded-lg px-3 ${
-                isActive(link.path)
-                  ? 'bg-pink-50 text-pink-800 font-bold'
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
+              className={`block py-2 text-base font-medium rounded-lg px-3 ${isActive(link.path)
+                ? 'bg-pink-50 text-pink-800 font-bold'
+                : 'text-gray-700 hover:bg-gray-50'
+                }`}
             >
               {link.name}
             </Link>
@@ -177,13 +199,32 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Calendar className="w-4 h-4" />
               Book Boutique Fitting Session
             </button>
-            <Link
-              to="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 rounded-xl bg-gray-100 text-gray-800 font-semibold text-sm"
-            >
-              Account Login / Register
-            </Link>
+
+            {isAuthenticated && customerUser ? (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-pink-50 border border-pink-200">
+                <div className="flex items-center gap-2 text-sm font-bold text-gray-800">
+                  <User className="w-4 h-4 text-pink-600" />
+                  <span>{customerUser.name}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    handleCustomerLogout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-xs font-bold text-red-600 hover:underline"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center py-2.5 rounded-xl bg-gray-100 text-gray-800 font-semibold text-sm"
+              >
+                Account Login / Register
+              </Link>
+            )}
           </div>
         </div>
       )}
@@ -191,3 +232,5 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
+
+export default Navbar;

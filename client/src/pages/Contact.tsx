@@ -24,7 +24,7 @@ export const Contact: React.FC = () => {
   return (
     <div className="bg-[#fffcf8] py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        
+
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <span className="text-xs font-bold uppercase tracking-widest text-pink-700 bg-pink-100/80 px-3 py-1 rounded-full border border-pink-200">
@@ -39,12 +39,12 @@ export const Contact: React.FC = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-10">
-          
+
           {/* Contact Details & Store Info */}
           <div className="space-y-6">
             <div className="bg-white p-8 rounded-3xl border border-pink-100 shadow-sm space-y-6">
-              <h3 className="text-2xl font-bold font-serif text-gray-900">Flagship Boutique Store</h3>
-              
+              <h3 className="text-2xl font-bold font-serif text-gray-900">JaiThuthiksha Fashion</h3>
+
               <div className="space-y-4 text-sm text-gray-600">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-700 flex items-center justify-center shrink-0">
@@ -52,7 +52,7 @@ export const Contact: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900">Boutique Address</h4>
-                    <p>No. 42, Designer Avenue, Usman Road, T. Nagar, Chennai, Tamil Nadu 600017</p>
+                    <p>Karur bypass Rd,Gandhiji Street,Sakthi Nagar,Erode,638002</p>
                   </div>
                 </div>
 
@@ -61,8 +61,8 @@ export const Contact: React.FC = () => {
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-900">Call & WhatsApp Concierge</h4>
-                    <p>+91 98765 43210 / 044 2434 8899</p>
+                    <h4 className="font-bold text-gray-900">Call & WhatsApp Enquiry</h4>
+                    <p>84891 66899</p>
                   </div>
                 </div>
 
@@ -71,8 +71,8 @@ export const Contact: React.FC = () => {
                     <Mail className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-900">Email Inquiry</h4>
-                    <p>rentals@jaithuthiksha.com</p>
+                    <h4 className="font-bold text-gray-900">Email Enquiry</h4>
+                    <p>sakthimurugesan1986@gmail.com</p>
                   </div>
                 </div>
 
@@ -82,7 +82,7 @@ export const Contact: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900">Operating Hours</h4>
-                    <p>Monday - Sunday: 10:00 AM - 8:30 PM (All Days Open)</p>
+                    <p>Monday - Saturday: 10:00 AM - 8:30 PM </p>
                   </div>
                 </div>
               </div>

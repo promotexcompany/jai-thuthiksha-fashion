@@ -1,6 +1,8 @@
 import { X, Trash2, Calendar, ShoppingBag, MessageSquare, Sparkles } from 'lucide-react';
 import type { CartItem } from '../types/fashion';
 import { calculateReturnDate, generateWhatsAppBookingUrl, SHOP_CONFIG } from '../config/shopConfig';
+import { api } from '../services/api';
+import { useCustomerAuth } from '../context/CustomerAuthContext';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -15,17 +17,36 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   cartItems,
   onRemoveItem,
 }) => {
+  const { customerUser } = useCustomerAuth();
+
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.totalPrice, 0);
 
-  const handleWhatsAppCheckout = () => {
+  const handleWhatsAppCheckout = async () => {
     if (cartItems.length === 0) return;
+
+    // Log each cart item as a booking enquiry in Supabase
+    for (const item of cartItems) {
+      const returnDate = calculateReturnDate(item.startDate, item.durationDays);
+      await api.logEnquiry({
+        customerName: customerUser?.name || 'WhatsApp Customer',
+        customerPhone: 'Via WhatsApp',
+        dressId: item.product.id,
+        dressName: item.product.name,
+        category: item.product.categoryLabel || item.product.category,
+        startDate: item.startDate,
+        returnDate: returnDate,
+        durationDays: item.durationDays,
+        rentalPrice: item.totalPrice
+      });
+    }
 
     if (cartItems.length === 1) {
       const item = cartItems[0];
       const returnDate = calculateReturnDate(item.startDate, item.durationDays);
       const url = generateWhatsAppBookingUrl({
+        customerName: customerUser?.name,
         dressName: item.product.name,
         category: item.product.categoryLabel,
         rentalDate: item.startDate,
@@ -39,6 +60,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       // Multiple items booking format
       const cleanPhone = SHOP_CONFIG.SHOP_WHATSAPP_NUMBER.replace(/[^0-9]/g, '');
       let message = `Hello ${SHOP_CONFIG.SHOP_NAME},\nI am interested in booking the following ${cartItems.length} outfit(s):\n\n`;
+
+      if (customerUser?.name) {
+        message = `Hello ${SHOP_CONFIG.SHOP_NAME},\nMy name is ${customerUser.name}.\nI am interested in booking the following ${cartItems.length} outfit(s):\n\n`;
+      }
 
       cartItems.forEach((item, index) => {
         const returnDate = calculateReturnDate(item.startDate, item.durationDays);
@@ -196,7 +221,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
               <button
                 onClick={handleWhatsAppCheckout}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 px-6 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 px-6 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer"
               >
                 <MessageSquare className="w-5 h-5 fill-current" />
                 <span>Book Rental via WhatsApp</span>

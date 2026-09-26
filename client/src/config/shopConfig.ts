@@ -18,17 +18,17 @@ export const SHOP_CONFIG = {
    * - Example: '919876543210' (where 9876543210 is your 10-digit mobile number)
    * CHANGE THIS VALUE TO YOUR ACTUAL WHATSAPP NUMBER TO RECEIVE BOOKINGS.
    */
-  SHOP_WHATSAPP_NUMBER: import.meta.env.VITE_SHOP_WHATSAPP_NUMBER || '919876543210',
+  SHOP_WHATSAPP_NUMBER: import.meta.env.VITE_SHOP_WHATSAPP_NUMBER || '8489166899',
 
   /**
    * Display Phone Number formatted for header and footer display.
    */
-  SHOP_PHONE_DISPLAY: '+91 98765 43210',
+  SHOP_PHONE_DISPLAY: '+91 8489166899',
 
   /**
    * Flagship Boutique Physical Address.
    */
-  SHOP_ADDRESS: 'No. 42, Designer Avenue, Usman Road, T. Nagar, Chennai, Tamil Nadu 600017',
+  SHOP_ADDRESS: 'Karur Bypass road,Gandhiji Street,Sakthi Nagar,Erode,638002',
 
   /**
    * Default Admin Login Username (can be overridden in .env via VITE_ADMIN_USERNAME).

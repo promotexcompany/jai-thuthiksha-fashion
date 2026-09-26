@@ -1,20 +1,51 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Phone, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, AlertCircle } from 'lucide-react';
+import { useCustomerAuth } from '../context/CustomerAuthContext';
 
 export const Register: React.FC = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    preferredStyle: 'Bridal Lehenga',
-  });
+  const { register } = useCustomerAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [preferredStyle, setPreferredStyle] = useState('Bridal Lehenga');
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/catalogue');
+    setError('');
+
+    if (!name.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await register(name.trim(), email.trim(), password);
+      if (res.success) {
+        navigate('/catalogue');
+      } else {
+        setError(res.error || 'Registration failed. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred during registration.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -34,6 +65,15 @@ export const Register: React.FC = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-8 space-y-4">
+
+          {/* Error Banner */}
+          {error && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
             <div className="relative">
@@ -41,42 +81,26 @@ export const Register: React.FC = () => {
               <input
                 type="text"
                 required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Radhika Sharma"
                 className="w-full pl-9 pr-4 py-3 rounded-xl border border-gray-200 text-xs outline-none focus:ring-2 focus:ring-pink-500"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Email</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="name@domain.com"
-                  className="w-full pl-9 pr-3 py-3 rounded-xl border border-gray-200 text-xs outline-none focus:ring-2 focus:ring-pink-500"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Phone</label>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
-                <input
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+91 98765..."
-                  className="w-full pl-9 pr-3 py-3 rounded-xl border border-gray-200 text-xs outline-none focus:ring-2 focus:ring-pink-500"
-                />
-              </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Email Address</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@domain.com"
+                className="w-full pl-9 pr-4 py-3 rounded-xl border border-gray-200 text-xs outline-none focus:ring-2 focus:ring-pink-500"
+              />
             </div>
           </div>
 
@@ -87,8 +111,8 @@ export const Register: React.FC = () => {
               <input
                 type="password"
                 required
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimum 6 characters"
                 className="w-full pl-9 pr-4 py-3 rounded-xl border border-gray-200 text-xs outline-none focus:ring-2 focus:ring-pink-500"
               />
@@ -98,8 +122,8 @@ export const Register: React.FC = () => {
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">Primary Outfit Interest</label>
             <select
-              value={formData.preferredStyle}
-              onChange={(e) => setFormData({ ...formData, preferredStyle: e.target.value })}
+              value={preferredStyle}
+              onChange={(e) => setPreferredStyle(e.target.value)}
               className="w-full py-3 px-3 rounded-xl border border-gray-200 text-xs outline-none focus:ring-2 focus:ring-pink-500"
             >
               <option>Bridal Lehenga</option>
@@ -112,10 +136,17 @@ export const Register: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full gradient-btn text-white py-3.5 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 mt-4"
+            disabled={loading}
+            className="w-full gradient-btn text-white py-3.5 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 mt-4 disabled:opacity-60"
           >
-            <span>Create Renter Profile</span>
-            <ArrowRight className="w-4 h-4" />
+            {loading ? (
+              <span>Creating Account...</span>
+            ) : (
+              <>
+                <span>Create Renter Profile</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
 
           <p className="text-center text-xs text-gray-500 pt-4">
