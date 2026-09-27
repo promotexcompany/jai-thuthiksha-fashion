@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Sparkles, Calendar, Search, ArrowRight, CheckCircle2, Award, Tag } from 'lucide-react';
 import type { CategoryOffer } from '../types/fashion';
 import type { MainLayoutContextType } from '../layouts/MainLayout';
+import { PRODUCTS } from '../services/data';
 
 interface HeroSectionProps {
   onOpenAppointment: () => void;
@@ -12,6 +13,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAppointment }) =
   const navigate = useNavigate();
   const context = useOutletContext<MainLayoutContextType>();
   const offers: CategoryOffer[] = context?.offers || [];
+  const onQuickView = context?.onQuickView;
 
   const [selectedCategory, setSelectedCategory] = useState('');
   const [eventDate, setEventDate] = useState('');
@@ -159,11 +161,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAppointment }) =
             <div className="relative mx-auto max-w-md lg:max-w-none">
               
               {/* Main Card */}
-              <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl border-4 border-white transform rotate-1 hover:rotate-0 transition duration-500 bg-white">
+              <div
+                onClick={() => onQuickView && onQuickView(PRODUCTS[0])}
+                className="relative z-10 rounded-3xl overflow-hidden shadow-2xl border-4 border-white transform rotate-1 hover:rotate-0 transition duration-500 bg-white cursor-pointer"
+              >
                 <img
                   src="https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800"
                   alt="Maharani Bridal Lehenga"
-                  className="w-full h-[420px] object-cover"
+                  className="w-full h-80 sm:h-[420px] object-cover"
                 />
                 
                 {/* Floating Price Pill */}
@@ -183,7 +188,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAppointment }) =
               </div>
 
               {/* Floating Trust Badge Card */}
-              <div className="absolute -bottom-6 -left-6 z-20 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-pink-100 flex items-center gap-3.5 max-w-xs animate-float">
+              <div className="absolute -bottom-6 left-0 sm:-left-6 z-20 bg-white/95 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl shadow-2xl border border-pink-100 flex items-center gap-3.5 max-w-xs animate-float">
                 <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
                   <Award className="w-6 h-6" />
                 </div>

@@ -73,7 +73,8 @@ export const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
             return (
               <div
                 key={product.id}
-                className="bg-white rounded-2xl overflow-hidden border border-pink-100 shadow-sm hover:shadow-xl transition duration-300 flex flex-col group"
+                onClick={() => onQuickView(product)}
+                className="bg-white rounded-2xl overflow-hidden border border-pink-100 shadow-sm hover:shadow-xl transition duration-300 flex flex-col group cursor-pointer"
               >
                 {/* Image Container */}
                 <div className="relative h-80 overflow-hidden bg-gray-100">

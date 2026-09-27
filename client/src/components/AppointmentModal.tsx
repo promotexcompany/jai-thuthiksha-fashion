@@ -31,8 +31,8 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onCl
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-pink-100">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+      <div className="relative bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-pink-100 max-h-[92vh] overflow-y-auto">
         
         {/* Header */}
         <div className="p-6 bg-gradient-to-r from-pink-900 via-rose-800 to-amber-900 text-white relative">

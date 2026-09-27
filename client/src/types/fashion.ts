@@ -10,6 +10,7 @@ export interface Product {
   rentalPrice8Days: number;
   image: string;
   galleryImages: string[];
+  images?: string[];
   description: string;
   fabric: string;
   workType: string;
