@@ -1,29 +1,10 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
+import { supabase } from '../config/supabase.js';
 import { verifyToken, requireAdmin } from '../middleware/auth.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const UPLOAD_DIR = path.join(__dirname, '../../public/uploads');
-
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, UPLOAD_DIR);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname).toLowerCase() || '.png';
-    cb(null, `dress-${uniqueSuffix}${ext}`);
-  }
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -44,7 +25,7 @@ const router = express.Router();
 
 // POST /api/admin/upload (Admin Multi-Image Upload)
 router.post('/admin/upload', verifyToken, requireAdmin, (req, res) => {
-  upload.array('images', 8)(req, res, (err) => {
+  upload.array('images', 12)(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ error: err.message || 'Image upload failed.' });
     }
@@ -53,13 +34,54 @@ router.post('/admin/upload', verifyToken, requireAdmin, (req, res) => {
       return res.status(400).json({ error: 'No files were uploaded.' });
     }
 
-    const host = req.protocol + '://' + req.get('host');
-    const imageUrls = req.files.map(file => `${host}/uploads/${file.filename}`);
+    try {
+      const imageUrls = [];
 
-    res.json({
-      message: 'Images uploaded successfully',
-      urls: imageUrls
-    });
+      for (const file of req.files) {
+        const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+        const filename = `dress-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+
+        let uploadedUrl = null;
+
+        // 1. Try uploading to Supabase Storage bucket 'dresses'
+        try {
+          const { error: uploadError } = await supabase.storage
+            .from('dresses')
+            .upload(filename, file.buffer, {
+              contentType: file.mimetype,
+              upsert: true
+            });
+
+          if (!uploadError) {
+            const { data: publicUrlData } = supabase.storage
+              .from('dresses')
+              .getPublicUrl(filename);
+
+            if (publicUrlData && publicUrlData.publicUrl) {
+              uploadedUrl = publicUrlData.publicUrl;
+            }
+          }
+        } catch (storageErr) {
+          console.warn('Supabase storage bucket upload notice:', storageErr);
+        }
+
+        // 2. Fallback to persistent Base64 Data URL if bucket is not created
+        if (!uploadedUrl) {
+          const base64Str = file.buffer.toString('base64');
+          uploadedUrl = `data:${file.mimetype};base64,${base64Str}`;
+        }
+
+        imageUrls.push(uploadedUrl);
+      }
+
+      res.json({
+        message: 'Images uploaded successfully',
+        urls: imageUrls
+      });
+    } catch (processErr) {
+      console.error('Upload processing error:', processErr);
+      res.status(500).json({ error: 'Failed to process uploaded images.' });
+    }
   });
 });
 
