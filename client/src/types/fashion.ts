@@ -20,6 +20,11 @@ export interface Product {
   reviewCount: number;
   isTrending?: boolean;
   isNewArrival?: boolean;
+  showOnHomepage?: boolean;
+  displayOrder?: number;
+  isAvailable?: boolean;
+  isHidden?: boolean;
+  advanceAmount?: number;
   primaryImage?: string;
   occasion: string;
 }

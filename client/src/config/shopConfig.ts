@@ -106,6 +106,7 @@ export const generateWhatsAppBookingUrl = (params: {
   originalPrice?: number;
   discountPercentage?: number;
   rentalPrice?: number;
+  whatsappNumber?: string;
 }): string => {
   const {
     customerName,
@@ -118,10 +119,11 @@ export const generateWhatsAppBookingUrl = (params: {
     originalPrice,
     discountPercentage,
     rentalPrice,
+    whatsappNumber
   } = params;
 
   // Clean phone number: ensure country code 91 if 10 digits
-  const cleanPhone = getCleanWhatsAppNumber();
+  const cleanPhone = whatsappNumber ? getCleanWhatsAppNumber(whatsappNumber) : getCleanWhatsAppNumber();
 
   // Message body formatted cleanly as requested
   let message = `Hello ${SHOP_CONFIG.SHOP_NAME},\nI am interested in booking:\n`;

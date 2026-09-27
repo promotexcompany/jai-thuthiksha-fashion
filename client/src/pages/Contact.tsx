@@ -6,6 +6,7 @@ import { api } from '../services/api';
 
 interface LayoutContextType {
   onOpenAppointment: () => void;
+  settings?: any;
 }
 
 interface ValidationErrors {
@@ -16,7 +17,16 @@ interface ValidationErrors {
 }
 
 export const Contact: React.FC = () => {
-  const { onOpenAppointment } = useOutletContext<LayoutContextType>();
+  const context = useOutletContext<LayoutContextType>();
+  const onOpenAppointment = context?.onOpenAppointment;
+  const settings = context?.settings;
+
+  const shopName = settings?.shopName || SHOP_CONFIG.SHOP_NAME;
+  const shopAddress = settings?.shopAddress || SHOP_CONFIG.SHOP_ADDRESS;
+  const phoneDisplay = settings?.phoneDisplay || SHOP_CONFIG.SHOP_PHONE_DISPLAY;
+  const contactEmail = settings?.contactEmail || SHOP_CONFIG.SHOP_EMAIL;
+  const operatingHours = settings?.trialAvailabilityInfo || 'Monday - Saturday: 10:00 AM - 8:30 PM (All Days Open)';
+
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -139,7 +149,7 @@ export const Contact: React.FC = () => {
           {/* Contact Details & Store Info */}
           <div className="space-y-6">
             <div className="bg-white p-8 rounded-3xl border border-pink-100 shadow-sm space-y-6">
-              <h3 className="text-2xl font-bold font-serif text-gray-900">{SHOP_CONFIG.SHOP_NAME}</h3>
+              <h3 className="text-2xl font-bold font-serif text-gray-900">{shopName}</h3>
 
               <div className="space-y-4 text-sm text-gray-600">
                 <div className="flex items-start gap-3">
@@ -148,7 +158,7 @@ export const Contact: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900">Boutique Address</h4>
-                    <p>{SHOP_CONFIG.SHOP_ADDRESS}</p>
+                    <p>{shopAddress}</p>
                   </div>
                 </div>
 
@@ -158,7 +168,7 @@ export const Contact: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900">Call & WhatsApp Enquiry</h4>
-                    <p>{SHOP_CONFIG.SHOP_PHONE_DISPLAY}</p>
+                    <p>{phoneDisplay}</p>
                   </div>
                 </div>
 
@@ -168,7 +178,7 @@ export const Contact: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900">Email Enquiry</h4>
-                    <p>{SHOP_CONFIG.SHOP_EMAIL}</p>
+                    <p>{contactEmail}</p>
                   </div>
                 </div>
 
@@ -178,7 +188,7 @@ export const Contact: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900">Operating Hours</h4>
-                    <p>Monday - Saturday: 10:00 AM - 8:30 PM (All Days Open)</p>
+                    <p>{operatingHours}</p>
                   </div>
                 </div>
               </div>

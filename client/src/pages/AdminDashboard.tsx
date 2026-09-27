@@ -4,13 +4,15 @@ import { api } from '../services/api';
 import type { Product, Category, CategoryOffer } from '../types/fashion';
 import {
   LogOut, Plus, Trash2, Edit3, ShoppingBag, X, LayoutDashboard, Tag, SlidersHorizontal,
-  Image as ImageIcon, Calendar, Settings, Eye, EyeOff, Check, Percent, AlertCircle
+  Image as ImageIcon, Calendar, Settings, Eye, EyeOff, Check, Percent, AlertCircle, Home, MapPin, Sparkles
 } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
+const AVAILABLE_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free Size', 'Custom Fit'];
+
 export const AdminDashboard: React.FC = () => {
   const { logout, adminUser } = useAdminAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'dresses' | 'categories' | 'offers' | 'filters' | 'images' | 'bookings' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'dresses' | 'categories' | 'offers' | 'homepage' | 'filters' | 'images' | 'bookings' | 'settings'>('overview');
 
   // Server Data States
   const [dresses, setDresses] = useState<Product[]>([]);
@@ -43,7 +45,11 @@ export const AdminDashboard: React.FC = () => {
     colors: ['Red'],
     occasion: 'Wedding Day',
     isAvailable: true,
-    isHidden: false
+    isHidden: false,
+    showOnHomepage: true,
+    isTrending: false,
+    isNewArrival: false,
+    displayOrder: 1
   });
 
   // Category Form State
@@ -139,19 +145,23 @@ export const AdminDashboard: React.FC = () => {
       description: dress.description,
       fabric: dress.fabric,
       workType: dress.workType,
-      sizes: dress.sizes,
-      colors: dress.colors,
-      occasion: dress.occasion,
+      sizes: dress.sizes || ['S', 'M', 'L'],
+      colors: dress.colors || ['Red'],
+      occasion: dress.occasion || 'Wedding Day',
       isAvailable: (dress as any).isAvailable !== undefined ? (dress as any).isAvailable : true,
-      isHidden: (dress as any).isHidden || false
+      isHidden: (dress as any).isHidden || false,
+      showOnHomepage: (dress as any).showOnHomepage !== undefined ? (dress as any).showOnHomepage : true,
+      isTrending: (dress as any).isTrending || false,
+      isNewArrival: (dress as any).isNewArrival || false,
+      displayOrder: (dress as any).displayOrder || 1
     });
     setShowDressModal(true);
   };
 
-  const handleToggleDressStatus = async (id: string, updates: { isAvailable?: boolean; isHidden?: boolean }) => {
+  const handleToggleDressStatus = async (id: string, updates: { isAvailable?: boolean; isHidden?: boolean; showOnHomepage?: boolean; isTrending?: boolean; isNewArrival?: boolean }) => {
     try {
       await api.toggleDressStatus(id, updates);
-      notify('Dress status updated');
+      notify('Dress settings updated!');
       fetchData();
     } catch (err: any) {
       alert(err.message);
@@ -167,6 +177,15 @@ export const AdminDashboard: React.FC = () => {
       } catch (err: any) {
         alert(err.message);
       }
+    }
+  };
+
+  const handleToggleSize = (size: string) => {
+    const currentSizes = dressForm.sizes || [];
+    if (currentSizes.includes(size)) {
+      setDressForm({ ...dressForm, sizes: currentSizes.filter((s) => s !== size) });
+    } else {
+      setDressForm({ ...dressForm, sizes: [...currentSizes, size] });
     }
   };
 
@@ -355,7 +374,7 @@ export const AdminDashboard: React.FC = () => {
     e.preventDefault();
     try {
       await api.updateSettings(settings);
-      notify('Website content & settings updated live!');
+      notify('Website business info & settings updated live!');
       fetchData();
     } catch (err: any) {
       alert(err.message);
@@ -412,6 +431,16 @@ export const AdminDashboard: React.FC = () => {
             >
               <Tag className="w-4 h-4" />
               <span>Categories</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('homepage')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${
+                activeTab === 'homepage' ? 'bg-pink-700 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Home className="w-4 h-4 text-amber-400" />
+              <span>Homepage Outfits</span>
             </button>
 
             <button
@@ -475,7 +504,7 @@ export const AdminDashboard: React.FC = () => {
               }`}
             >
               <Settings className="w-4 h-4" />
-              <span>Website Content</span>
+              <span>Business & Trial Settings</span>
             </button>
           </nav>
 
@@ -485,7 +514,7 @@ export const AdminDashboard: React.FC = () => {
         <div className="pt-4 border-t border-slate-800 space-y-3">
           <div className="px-2">
             <span className="text-[10px] text-slate-500 uppercase block font-bold">Admin Account</span>
-            <span className="text-xs font-bold text-slate-200 truncate block">{adminUser?.email || 'admin@jaithuthiksha.com'}</span>
+            <span className="text-xs font-bold text-slate-200 truncate block">{adminUser?.email || 'admin@jaithuthikshafashion.online'}</span>
           </div>
 
           <button
@@ -600,8 +629,8 @@ export const AdminDashboard: React.FC = () => {
           {/* 2. DRESSES MANAGEMENT TAB */}
           {activeTab === 'dresses' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <p className="text-xs text-slate-400">Add, edit, upload multiple images, or temporarily hide dresses.</p>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <p className="text-xs text-slate-400">Manage rental outfits, upload images, set sizes, prices, and homepage visibility.</p>
                 <button
                   onClick={() => {
                     setEditingDressId(null);
@@ -623,7 +652,11 @@ export const AdminDashboard: React.FC = () => {
                       colors: ['Crimson Red'],
                       occasion: 'Wedding Day',
                       isAvailable: true,
-                      isHidden: false
+                      isHidden: false,
+                      showOnHomepage: true,
+                      isTrending: false,
+                      isNewArrival: false,
+                      displayOrder: 1
                     });
                     setShowDressModal(true);
                   }}
@@ -641,8 +674,13 @@ export const AdminDashboard: React.FC = () => {
                       <div className="relative h-48 bg-slate-950 rounded-2xl overflow-hidden">
                         <img src={dress.image} alt={dress.name} className="w-full h-full object-cover" />
                         <div className="absolute top-2 left-2 bg-slate-900/90 text-amber-300 text-[10px] font-bold px-2 py-1 rounded-full border border-slate-700">
-                          {dress.categoryLabel}
+                          {dress.categoryLabel || dress.category}
                         </div>
+                        {(dress as any).showOnHomepage !== false && (
+                          <div className="absolute top-2 right-2 bg-pink-900/90 text-pink-200 text-[10px] font-bold px-2 py-1 rounded-full border border-pink-700 flex items-center gap-1">
+                            <Home className="w-3 h-3" /> Homepage
+                          </div>
+                        )}
                       </div>
 
                       <div>
@@ -650,6 +688,13 @@ export const AdminDashboard: React.FC = () => {
                         <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
                           <span>4-Day: <strong className="text-pink-400">₹{dress.rentalPrice4Days}</strong></span>
                           <span>Retail: ₹{dress.retailPrice}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {(dress.sizes || []).map((sz: string) => (
+                            <span key={sz} className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-mono font-bold">
+                              {sz}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -723,6 +768,96 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* HOMEPAGE DRESSES MANAGEMENT TAB */}
+          {activeTab === 'homepage' && (
+            <div className="space-y-6">
+              <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800">
+                <h3 className="text-lg font-bold font-serif text-white flex items-center gap-2">
+                  <Home className="w-5 h-5 text-amber-400" />
+                  <span>Homepage Outfits & Featured Collection</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Control exactly which outfits appear on the front page. Toggle homepage display or feature status without deleting dresses from catalogue.
+                </p>
+              </div>
+
+              <div className="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="bg-slate-950 uppercase font-bold text-slate-400 border-b border-slate-800">
+                      <tr>
+                        <th className="p-4">Outfit</th>
+                        <th className="p-4">Category</th>
+                        <th className="p-4">4-Day Rent</th>
+                        <th className="p-4">Homepage Status</th>
+                        <th className="p-4">Trending</th>
+                        <th className="p-4">New Arrival</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {dresses.map((dress) => {
+                        const isHomepage = (dress as any).showOnHomepage !== false && !(dress as any).isHidden;
+                        const isTrending = !!(dress as any).isTrending;
+                        const isNew = !!(dress as any).isNewArrival;
+
+                        return (
+                          <tr key={dress.id} className="hover:bg-slate-800/40">
+                            <td className="p-4 flex items-center gap-3">
+                              <img src={dress.image} alt={dress.name} className="w-10 h-12 object-cover rounded-lg bg-slate-950" />
+                              <div>
+                                <strong className="text-white text-sm block font-serif">{dress.name}</strong>
+                                <span className="text-[10px] text-slate-500">ID: {dress.id}</span>
+                              </div>
+                            </td>
+                            <td className="p-4 font-semibold text-amber-300">{dress.categoryLabel || dress.category}</td>
+                            <td className="p-4 font-bold text-pink-400">₹{dress.rentalPrice4Days}</td>
+                            <td className="p-4">
+                              <button
+                                onClick={() => handleToggleDressStatus(dress.id, { showOnHomepage: !isHomepage })}
+                                className={`px-3 py-1.5 rounded-xl font-bold text-xs border transition flex items-center gap-1.5 ${
+                                  isHomepage
+                                    ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
+                                    : 'bg-slate-800 text-slate-400 border-slate-700'
+                                }`}
+                              >
+                                {isHomepage ? <Check className="w-3.5 h-3.5" /> : null}
+                                <span>{isHomepage ? 'Shown on Homepage' : 'Hidden from Homepage'}</span>
+                              </button>
+                            </td>
+                            <td className="p-4">
+                              <button
+                                onClick={() => handleToggleDressStatus(dress.id, { isTrending: !isTrending })}
+                                className={`px-3 py-1.5 rounded-xl font-bold text-xs border transition ${
+                                  isTrending
+                                    ? 'bg-amber-950 text-amber-300 border-amber-800'
+                                    : 'bg-slate-800 text-slate-400 border-slate-700'
+                                }`}
+                              >
+                                {isTrending ? '🔥 Trending' : 'Normal'}
+                              </button>
+                            </td>
+                            <td className="p-4">
+                              <button
+                                onClick={() => handleToggleDressStatus(dress.id, { isNewArrival: !isNew })}
+                                className={`px-3 py-1.5 rounded-xl font-bold text-xs border transition ${
+                                  isNew
+                                    ? 'bg-pink-950 text-pink-300 border-pink-800'
+                                    : 'bg-slate-800 text-slate-400 border-slate-700'
+                                }`}
+                              >
+                                {isNew ? '✨ New Arrival' : 'Standard'}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -919,57 +1054,200 @@ export const AdminDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* 7. SETTINGS / CONTENT TAB */}
+          {/* 7. SETTINGS / BUSINESS & TRIAL INFO TAB */}
           {activeTab === 'settings' && (
-            <form onSubmit={handleSaveSettings} className="bg-slate-900 rounded-3xl border border-slate-800 p-6 space-y-6 text-xs max-w-3xl">
-              <h3 className="text-lg font-bold font-serif text-white">Website Content & Boutique Info</h3>
+            <form onSubmit={handleSaveSettings} className="bg-slate-900 rounded-3xl border border-slate-800 p-6 space-y-6 text-xs max-w-4xl">
+              <div>
+                <h3 className="text-xl font-bold font-serif text-white flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-amber-400" />
+                  <span>Business Information & Trial Appointment Settings</span>
+                </h3>
+                <p className="text-slate-400 text-xs mt-1">
+                  Updates made here immediately propagate dynamically to the Navbar, Trial Popup, Contact Page, and WhatsApp booking links across the website.
+                </p>
+              </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Section A: Boutique Contact & Location */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
+                <h4 className="font-bold text-amber-300 text-sm flex items-center gap-2">
+                  <MapPin className="w-4 h-4" /> Boutique Details & Location
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">Shop Name</label>
+                    <input
+                      type="text"
+                      value={settings.shopName || ''}
+                      onChange={(e) => setSettings({ ...settings, shopName: e.target.value })}
+                      placeholder="Jai Thuthiksha Fashion"
+                      className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none focus:border-pink-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">WhatsApp Booking Number (e.g. 8489166899)</label>
+                    <input
+                      type="text"
+                      value={settings.whatsappNumber || ''}
+                      onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
+                      className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none focus:border-pink-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">Phone Display Support (+91 84891 66899)</label>
+                    <input
+                      type="text"
+                      value={settings.phoneDisplay || ''}
+                      onChange={(e) => setSettings({ ...settings, phoneDisplay: e.target.value })}
+                      className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none focus:border-pink-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">Contact Email</label>
+                    <input
+                      type="email"
+                      value={settings.contactEmail || ''}
+                      onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
+                      className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none focus:border-pink-500"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-slate-400 font-bold mb-1">Shop Display Name</label>
+                  <label className="block text-slate-400 font-bold mb-1">Street Address</label>
                   <input
                     type="text"
-                    value={settings.shopName || ''}
-                    onChange={(e) => setSettings({ ...settings, shopName: e.target.value })}
-                    className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white outline-none"
+                    value={settings.shopAddress || ''}
+                    onChange={(e) => setSettings({ ...settings, shopAddress: e.target.value })}
+                    placeholder="No. 12, Park Road, Near Bus Stand"
+                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none focus:border-pink-500"
                   />
                 </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">City</label>
+                    <input
+                      type="text"
+                      value={settings.city || ''}
+                      onChange={(e) => setSettings({ ...settings, city: e.target.value })}
+                      placeholder="Erode"
+                      className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">State</label>
+                    <input
+                      type="text"
+                      value={settings.state || ''}
+                      onChange={(e) => setSettings({ ...settings, state: e.target.value })}
+                      placeholder="Tamil Nadu"
+                      className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">Pincode</label>
+                    <input
+                      type="text"
+                      value={settings.pincode || ''}
+                      onChange={(e) => setSettings({ ...settings, pincode: e.target.value })}
+                      placeholder="638001"
+                      className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-slate-400 font-bold mb-1">WhatsApp Number (e.g. 8489166899)</label>
+                  <label className="block text-slate-400 font-bold mb-1">Google Maps URL</label>
                   <input
-                    type="text"
-                    value={settings.whatsappNumber || ''}
-                    onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
-                    className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white outline-none"
+                    type="url"
+                    value={settings.mapsUrl || ''}
+                    onChange={(e) => setSettings({ ...settings, mapsUrl: e.target.value })}
+                    placeholder="https://maps.google.com/?q=..."
+                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-slate-400 font-bold mb-1">Boutique Physical Address</label>
-                <input
-                  type="text"
-                  value={settings.shopAddress || ''}
-                  onChange={(e) => setSettings({ ...settings, shopAddress: e.target.value })}
-                  className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white outline-none"
-                />
+              {/* Section B: Trial Appointment Popup Settings */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
+                <h4 className="font-bold text-amber-300 text-sm flex items-center gap-2">
+                  <Calendar className="w-4 h-4" /> Trial Appointment Popup Content
+                </h4>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Trial Title</label>
+                  <input
+                    type="text"
+                    value={settings.trialTitle || ''}
+                    onChange={(e) => setSettings({ ...settings, trialTitle: e.target.value })}
+                    placeholder="Book In-Person Trial"
+                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Trial Description</label>
+                  <textarea
+                    rows={2}
+                    value={settings.trialDescription || ''}
+                    onChange={(e) => setSettings({ ...settings, trialDescription: e.target.value })}
+                    placeholder="Visit our exclusive boutique for personalized fitting and trial sessions."
+                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Availability Hours</label>
+                  <input
+                    type="text"
+                    value={settings.trialAvailabilityInfo || ''}
+                    onChange={(e) => setSettings({ ...settings, trialAvailabilityInfo: e.target.value })}
+                    placeholder="Monday - Saturday | 10:00 AM - 8:00 PM"
+                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-400 font-bold mb-1">Hero Title Heading</label>
-                <input
-                  type="text"
-                  value={settings.heroTitle || ''}
-                  onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
-                  className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white outline-none"
-                />
+              {/* Section C: Homepage Hero */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
+                <h4 className="font-bold text-amber-300 text-sm flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" /> Homepage Hero Banner
+                </h4>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Hero Title Heading</label>
+                  <input
+                    type="text"
+                    value={settings.heroTitle || ''}
+                    onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
+                    placeholder="Luxury Rental Couture for Your Special Moments"
+                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">Hero Description Subtitle</label>
+                  <textarea
+                    rows={2}
+                    value={settings.heroSubtitle || ''}
+                    onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })}
+                    placeholder="Rent premium designer bridal lehengas, silk sarees, and traditional wear at affordable rental prices."
+                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-white outline-none resize-none"
+                  />
+                </div>
               </div>
 
               <button
                 type="submit"
-                className="gradient-btn text-white font-bold py-3 px-8 rounded-xl shadow-lg"
+                className="gradient-btn text-white font-bold py-3.5 px-8 rounded-xl shadow-lg w-full sm:w-auto"
               >
-                Save & Publish Settings
+                Save & Publish Settings Live
               </button>
             </form>
           )}
@@ -1060,6 +1338,30 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* Dress Sizes Checkbox Selector */}
+              <div>
+                <label className="block text-slate-400 font-bold mb-1">Available Sizes for this Dress</label>
+                <div className="flex flex-wrap gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                  {AVAILABLE_SIZES.map((size) => {
+                    const isSelected = (dressForm.sizes || []).includes(size);
+                    return (
+                      <button
+                        type="button"
+                        key={size}
+                        onClick={() => handleToggleSize(size)}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-xs transition border ${
+                          isSelected
+                            ? 'bg-pink-700 text-white border-pink-500 shadow'
+                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                        }`}
+                      >
+                        {isSelected ? '✓ ' : ''}{size}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Multi-Image Upload & Preview */}
               <div className="space-y-2">
                 <label className="block text-slate-400 font-bold">Dress Images (Upload or add URL)</label>
@@ -1091,12 +1393,24 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex gap-4 pt-2">
+              {/* Homepage & Visibility Options */}
+              <div className="grid grid-cols-2 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                <label className="flex items-center gap-2 cursor-pointer text-slate-300 font-bold">
+                  <input
+                    type="checkbox"
+                    checked={dressForm.showOnHomepage}
+                    onChange={(e) => setDressForm({ ...dressForm, showOnHomepage: e.target.checked })}
+                    className="accent-pink-600 w-4 h-4"
+                  />
+                  <span>Show on Homepage</span>
+                </label>
+
                 <label className="flex items-center gap-2 cursor-pointer text-slate-300 font-bold">
                   <input
                     type="checkbox"
                     checked={dressForm.isAvailable}
                     onChange={(e) => setDressForm({ ...dressForm, isAvailable: e.target.checked })}
+                    className="accent-emerald-600 w-4 h-4"
                   />
                   <span>Available for Rent</span>
                 </label>
@@ -1104,10 +1418,21 @@ export const AdminDashboard: React.FC = () => {
                 <label className="flex items-center gap-2 cursor-pointer text-slate-300 font-bold">
                   <input
                     type="checkbox"
+                    checked={dressForm.isTrending}
+                    onChange={(e) => setDressForm({ ...dressForm, isTrending: e.target.checked })}
+                    className="accent-amber-600 w-4 h-4"
+                  />
+                  <span>Mark as Trending</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-slate-300 font-bold">
+                  <input
+                    type="checkbox"
                     checked={dressForm.isHidden}
                     onChange={(e) => setDressForm({ ...dressForm, isHidden: e.target.checked })}
+                    className="accent-red-600 w-4 h-4"
                   />
-                  <span>Hide from Public Catalogue</span>
+                  <span>Hide from Catalogue</span>
                 </label>
               </div>
 

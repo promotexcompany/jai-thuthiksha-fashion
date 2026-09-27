@@ -1,10 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CATEGORIES } from '../services/data';
+import { api } from '../services/api';
+import type { Category } from '../types/fashion';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 export const CategoryGrid: React.FC = () => {
   const navigate = useNavigate();
+  const [categoriesList, setCategoriesList] = useState<Category[]>(CATEGORIES);
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const liveCats = await api.getPublicCategories();
+        if (Array.isArray(liveCats) && liveCats.length > 0) {
+          setCategoriesList(liveCats);
+        }
+      } catch (err) {
+        console.warn('Using offline categories fallback');
+      }
+    };
+    fetchCats();
+  }, []);
 
   return (
     <section className="py-16 bg-white border-b border-pink-100">
@@ -25,7 +42,7 @@ export const CategoryGrid: React.FC = () => {
 
         {/* Category Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {CATEGORIES.map((cat) => (
+          {categoriesList.map((cat) => (
             <div
               key={cat.id}
               onClick={() => navigate(`/catalogue?cat=${cat.id}`)}
@@ -34,7 +51,7 @@ export const CategoryGrid: React.FC = () => {
               {/* Category Image */}
               <div className="h-72 w-full overflow-hidden">
                 <img
-                  src={cat.image}
+                  src={cat.image || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800'}
                   alt={cat.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition duration-700 opacity-90 group-hover:opacity-100"
                 />
@@ -52,13 +69,13 @@ export const CategoryGrid: React.FC = () => {
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent p-6 flex flex-col justify-end text-white">
                 <div className="transform group-hover:-translate-y-1 transition duration-300">
                   <span className="text-xs font-medium text-pink-300 block mb-1">
-                    {cat.itemCount}+ Exclusive Outfits
+                    {cat.itemCount || 10}+ Exclusive Outfits
                   </span>
                   <h3 className="text-2xl font-bold font-serif text-white group-hover:text-amber-300 transition">
                     {cat.name}
                   </h3>
                   <p className="text-xs text-slate-300 mt-1 line-clamp-1">
-                    {cat.tagline}
+                    {cat.tagline || 'Designer Fashion Rental'}
                   </p>
                 </div>
 

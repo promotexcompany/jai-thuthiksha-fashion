@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { PRODUCTS } from '../services/data';
-import type { Product, CategoryOffer } from '../types/fashion';
+import { useState, useEffect, useMemo } from 'react';
+import { PRODUCTS, CATEGORIES } from '../services/data';
+import { api } from '../services/api';
+import type { Product, CategoryOffer, Category } from '../types/fashion';
 import { Star, Eye, Sparkles, ArrowRight, Tag } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { getCalculatedPrice } from '../utils/offerUtils';
@@ -14,14 +15,57 @@ export const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
   onQuickView,
 }) => {
   const [activeTab, setActiveTab] = useState<string>('all');
+  const [productsList, setProductsList] = useState<Product[]>(PRODUCTS);
+  const [categoriesList, setCategoriesList] = useState<Category[]>(CATEGORIES);
   const navigate = useNavigate();
 
   const context = useOutletContext<MainLayoutContextType>();
   const offers: CategoryOffer[] = context?.offers || [];
 
-  const filteredProducts = activeTab === 'all' 
-    ? PRODUCTS 
-    : PRODUCTS.filter(p => p.category === activeTab);
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [liveDresses, liveCats] = await Promise.all([
+          api.getPublicDresses(),
+          api.getPublicCategories()
+        ]);
+        if (Array.isArray(liveDresses) && liveDresses.length > 0) {
+          setProductsList(liveDresses);
+        }
+        if (Array.isArray(liveCats) && liveCats.length > 0) {
+          setCategoriesList(liveCats);
+        }
+      } catch (err) {
+        console.warn('Using offline fallback for featured products');
+      }
+    };
+    loadData();
+  }, []);
+
+  // Filter dresses for homepage: showOnHomepage !== false && !isHidden
+  const homepageProducts = useMemo(() => {
+    return productsList.filter((p) => {
+      const isVisibleOnHome = (p as any).showOnHomepage !== false && !(p as any).isHidden;
+      if (!isVisibleOnHome) return false;
+
+      if (activeTab !== 'all') {
+        const matchesCat = p.category === activeTab ||
+                           (p as any).categoryId === activeTab ||
+                           p.categoryLabel?.toLowerCase() === activeTab.toLowerCase();
+        if (!matchesCat) return false;
+      }
+      return true;
+    });
+  }, [productsList, activeTab]);
+
+  // Tab options from active categories
+  const tabOptions = useMemo(() => {
+    const list = [{ id: 'all', label: 'All Collection' }];
+    categoriesList.forEach((cat) => {
+      list.push({ id: cat.id, label: cat.name });
+    });
+    return list;
+  }, [categoriesList]);
 
   return (
     <section className="py-16 bg-pink-50/40 border-b border-pink-100">
@@ -43,14 +87,7 @@ export const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
 
           {/* Filter Tabs */}
           <div className="flex flex-wrap gap-2 bg-white p-1.5 rounded-2xl border border-pink-200 shadow-sm">
-            {[
-              { id: 'all', label: 'All Collection' },
-              { id: 'bridal', label: 'Bridal' },
-              { id: 'sarees', label: 'Silk Sarees' },
-              { id: 'indo-western', label: 'Indo-Western' },
-              { id: 'menswear', label: 'Sherwanis' },
-              { id: 'jewelry', label: 'Jewelry' },
-            ].map((tab) => (
+            {tabOptions.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -68,7 +105,7 @@ export const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
 
         {/* Product Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => {
+          {homepageProducts.map((product) => {
             const priceInfo = getCalculatedPrice(product.rentalPrice4Days, product.categoryId || product.category, product.categoryLabel, offers);
             return (
               <div

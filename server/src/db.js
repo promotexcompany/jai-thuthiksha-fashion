@@ -152,20 +152,27 @@ const getInitialData = () => {
     settings: {
       shopName: 'Jai Thuthiksha Fashion',
       shopLogo: '/assets/logo.png',
-      whatsappNumber: '919876543210',
-      phoneDisplay: '+91 98765 43210',
-      shopAddress: 'No. 42, Designer Avenue, Usman Road, T. Nagar, Chennai, Tamil Nadu 600017',
-      contactEmail: 'rentals@jaithuthiksha.com',
+      whatsappNumber: '8489166899',
+      phoneDisplay: '+91 84891 66899',
+      shopAddress: 'Karur Bypass road,Gandhiji Street,Sakthi Nagar,Erode,638002',
+      city: 'Erode',
+      state: 'Tamil Nadu',
+      pincode: '638002',
+      mapsUrl: 'https://maps.google.com/?q=Karur+Bypass+road+Gandhiji+Street+Sakthi+Nagar+Erode',
+      contactEmail: 'sakthimurugesan1986@gmail.com',
       instagramLink: 'https://instagram.com/jaithuthikshafashion',
       heroTitle: 'Wear the Luxury Designer You Love for Your Special Day.',
-      heroSubtitle: 'Rent royal bridal lehengas, handwoven Kanjeevaram silk sarees, and groom sherwanis at up to 80% off retail prices. Includes custom alteration and free dry-cleaned delivery.',
+      heroSubtitle: 'Rent royal bridal lehengas, handwoven Kanjeevaram silk sarees, and groom sherwanis at accessible rental prices. Includes custom alteration and free dry-cleaned delivery.',
       heroBanners: [
         'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800'
       ],
       aboutHeading: 'Redefining Luxury Indian Designer Wear for Every Celebration',
       aboutContent: 'Founded with a vision to make royal heritage bridal couture accessible, sustainable, and affordable. At Jai Thuthiksha Fashion, every outfit tells a story of craftsmanship, elegance, and timeless South Asian heritage.',
       termsInstructions: 'Every rental includes complimentary custom alterations, 5-stage medical-grade dry cleaning, and protective garment bag delivery. Orders must be returned in the provided return bag on or before the agreed return date.',
-      cancellationAdvanceInfo: 'An advance deposit is required to confirm your rental dates. Cancellations made 7+ days prior to rental start date receive 100% refund of advance deposit.'
+      cancellationAdvanceInfo: 'An advance deposit is required to confirm your rental dates. Cancellations made 7+ days prior to rental start date receive 100% refund of advance deposit.',
+      trialTitle: 'Boutique Trial & Fitting Session',
+      trialDescription: 'Visit Jai Thuthiksha Fashion for personalized styling & bridal trial fitting.',
+      trialAvailabilityInfo: 'Monday - Saturday: 10:00 AM - 8:30 PM (All Days Open)'
     },
     offers: [
       {

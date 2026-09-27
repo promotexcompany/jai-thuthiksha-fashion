@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { X, Calendar, Clock, MapPin, CheckCircle, User, Phone, Mail, Sparkles } from 'lucide-react';
+import { SHOP_CONFIG } from '../config/shopConfig';
 
 interface AppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
+  settings?: any;
 }
 
-export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose }) => {
+export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onClose, settings }) => {
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -19,6 +21,13 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onCl
   });
 
   if (!isOpen) return null;
+
+  const shopName = settings?.shopName || SHOP_CONFIG.SHOP_NAME;
+  const shopAddress = settings?.shopAddress || SHOP_CONFIG.SHOP_ADDRESS;
+  const phoneDisplay = settings?.phoneDisplay || SHOP_CONFIG.SHOP_PHONE_DISPLAY;
+  const trialTitle = settings?.trialTitle || 'Boutique Trial & Fitting Session';
+  const trialDescription = settings?.trialDescription || 'Visit Jai Thuthiksha Fashion for personalized styling & bridal trial fitting.';
+  const availabilityInfo = settings?.trialAvailabilityInfo || 'Monday - Saturday: 10:00 AM - 8:30 PM';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,11 +53,11 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onCl
           </button>
           <div className="flex items-center gap-2 text-amber-300 text-xs font-semibold uppercase tracking-wider mb-1">
             <Sparkles className="w-4 h-4" />
-            Boutique Trial & Fitting Session
+            {trialTitle}
           </div>
           <h3 className="text-2xl font-bold font-serif">Book In-Person Trial</h3>
           <p className="text-xs text-pink-100 mt-1">
-            Visit Jai Thuthiksha Fashion for personalized styling & bridal trial fitting.
+            {trialDescription}
           </p>
         </div>
 
@@ -59,16 +68,17 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onCl
             </div>
             <h4 className="text-xl font-bold text-gray-900">Appointment Confirmed!</h4>
             <p className="text-sm text-gray-600">
-              Thank you, <span className="font-semibold text-pink-700">{formData.name}</span>. Our bridal master stylist has reserved your slot on{' '}
+              Thank you, <span className="font-semibold text-pink-700">{formData.name}</span>. Our master stylist has reserved your slot on{' '}
               <span className="font-semibold text-gray-900">{formData.date || 'your selected date'}</span> ({formData.timeSlot}).
             </p>
             <div className="bg-pink-50 p-4 rounded-xl text-xs text-pink-900 text-left space-y-1">
               <p className="font-semibold text-sm mb-2 flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-pink-700" />
-                Jai Thuthiksha Fashion Boutique
+                {shopName} Boutique
               </p>
-              <p>No. 42, Designer Avenue, T. Nagar, Chennai, Tamil Nadu 600017</p>
-              <p>Phone support: +91 98765 43210</p>
+              <p>{shopAddress}</p>
+              <p>Phone support: {phoneDisplay}</p>
+              <p className="text-[11px] text-pink-800 font-medium pt-1">Hours: {availabilityInfo}</p>
             </div>
             <button
               onClick={handleReset}
@@ -104,7 +114,7 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onCl
                     required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+91 98765 43210"
+                    placeholder="Enter your 10-digit mobile number"
                     className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
                   />
                 </div>

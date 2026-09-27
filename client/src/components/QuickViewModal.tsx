@@ -11,12 +11,14 @@ interface QuickViewModalProps {
   product: Product | null;
   onClose: () => void;
   offers?: CategoryOffer[];
+  settings?: any;
 }
 
 export const QuickViewModal: React.FC<QuickViewModalProps> = ({
   product,
   onClose,
   offers = [],
+  settings
 }) => {
   const { customerUser } = useCustomerAuth();
 
@@ -84,6 +86,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
       originalPrice: priceInfo.hasOffer ? priceInfo.originalPrice : undefined,
       discountPercentage: priceInfo.hasOffer ? priceInfo.discountPercentage : undefined,
       rentalPrice: priceInfo.finalPrice,
+      whatsappNumber: settings?.whatsappNumber
     });
 
     // Open WhatsApp in a new tab

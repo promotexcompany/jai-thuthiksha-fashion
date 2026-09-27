@@ -32,6 +32,10 @@ export const mapDressFromDb = (d) => {
     occasion: d.occasion || '',
     isAvailable: d.is_available !== false,
     isHidden: d.is_hidden === true,
+    isTrending: d.is_trending === true,
+    isNewArrival: d.is_new_arrival === true,
+    showOnHomepage: d.show_on_homepage !== false,
+    displayOrder: Number(d.display_order) || 0,
     createdAt: d.created_at
   };
 };
@@ -100,7 +104,11 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
       colors,
       occasion,
       isAvailable,
-      isHidden
+      isHidden,
+      isTrending,
+      isNewArrival,
+      showOnHomepage,
+      displayOrder
     } = req.body;
 
     if (!name || (!rentalPrice4Days && rentalPrice4Days !== 0)) {
@@ -132,7 +140,11 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
       review_count: 1,
       occasion: occasion || 'Wedding Day',
       is_available: isAvailable !== undefined ? isAvailable : true,
-      is_hidden: isHidden !== undefined ? isHidden : false
+      is_hidden: isHidden !== undefined ? isHidden : false,
+      is_trending: isTrending !== undefined ? isTrending : false,
+      is_new_arrival: isNewArrival !== undefined ? isNewArrival : false,
+      show_on_homepage: showOnHomepage !== undefined ? showOnHomepage : true,
+      display_order: Number(displayOrder) || 0
     };
 
     const { data, error } = await supabase
@@ -178,6 +190,10 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
     if (body.occasion !== undefined) updates.occasion = body.occasion;
     if (body.isAvailable !== undefined) updates.is_available = body.isAvailable;
     if (body.isHidden !== undefined) updates.is_hidden = body.isHidden;
+    if (body.isTrending !== undefined) updates.is_trending = body.isTrending;
+    if (body.isNewArrival !== undefined) updates.is_new_arrival = body.isNewArrival;
+    if (body.showOnHomepage !== undefined) updates.show_on_homepage = body.showOnHomepage;
+    if (body.displayOrder !== undefined) updates.display_order = Number(body.displayOrder);
 
     const { data, error } = await supabase
       .from('dresses')

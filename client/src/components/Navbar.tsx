@@ -7,14 +7,21 @@ import { useCustomerAuth } from '../context/CustomerAuthContext';
 
 interface NavbarProps {
   onOpenAppointment: () => void;
+  settings?: any;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenAppointment,
+  settings,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { customerUser, isAuthenticated, logout } = useCustomerAuth();
+
+  const shopName = settings?.shopName || SHOP_CONFIG.SHOP_NAME;
+  const phoneDisplay = settings?.phoneDisplay || SHOP_CONFIG.SHOP_PHONE_DISPLAY;
+  const shopAddress = settings?.shopAddress || SHOP_CONFIG.SHOP_ADDRESS;
+  const shopLogo = settings?.shopLogo || logoImg;
 
   const handleCustomerLogout = () => {
     logout();
@@ -36,7 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="bg-gradient-to-r from-pink-900 via-rose-900 to-amber-900 text-white py-2 px-4 text-xs font-medium text-center flex items-center justify-between">
         <div className="hidden sm:flex items-center gap-2 text-pink-200">
           <PhoneCall className="w-3.5 h-3.5 text-amber-300" />
-          <span>Stylist Concierge: {SHOP_CONFIG.SHOP_PHONE_DISPLAY}</span>
+          <span>Stylist Concierge: {phoneDisplay}</span>
         </div>
 
         <div className="mx-auto flex items-center justify-center gap-2">
@@ -46,8 +53,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </div>
 
-        <div className="hidden sm:flex items-center gap-4 text-pink-200 text-[11px]">
-          <span>Jaithuthiksha Fashion - Karur Bypass Road, Erode</span>
+        <div className="hidden sm:flex items-center gap-4 text-pink-200 text-[11px] truncate max-w-xs">
+          <span>{shopName} - {shopAddress}</span>
         </div>
       </div>
 
@@ -59,14 +66,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           <Link to="/" className="flex items-center gap-3 group">
             <div className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 flex items-center justify-center p-0.5 rounded-xl bg-pink-50/50 group-hover:scale-105 transition">
               <img
-                src={logoImg}
-                alt={SHOP_CONFIG.SHOP_NAME}
+                src={shopLogo}
+                alt={shopName}
                 className="h-full w-full object-contain"
               />
             </div>
             <div className="flex flex-col">
               <span className="text-xl sm:text-2xl font-bold font-serif tracking-tight gradient-text">
-                {SHOP_CONFIG.SHOP_NAME}
+                {shopName}
               </span>
               <span className="text-[10px] tracking-widest uppercase font-semibold text-amber-700 -mt-1">
                 Luxury Fashion Rental

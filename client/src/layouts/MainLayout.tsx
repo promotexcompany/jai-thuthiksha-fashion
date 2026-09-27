@@ -11,15 +11,19 @@ export interface MainLayoutContextType {
   onOpenAppointment: () => void;
   offers: CategoryOffer[];
   refreshOffers: () => void;
+  settings: any;
+  refreshSettings: () => void;
 }
 
 export const MainLayout: React.FC = () => {
   const [isAppointmentOpen, setIsAppointmentOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [offers, setOffers] = useState<CategoryOffer[]>([]);
+  const [settings, setSettings] = useState<any>(null);
 
   useEffect(() => {
     fetchOffers();
+    fetchSettings();
   }, []);
 
   const fetchOffers = async () => {
@@ -33,12 +37,24 @@ export const MainLayout: React.FC = () => {
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      const data = await api.getSettings();
+      if (data) {
+        setSettings(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch public settings:', err);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#fffcf8] text-gray-900 font-sans">
       
       {/* Navigation Header */}
       <Navbar
         onOpenAppointment={() => setIsAppointmentOpen(true)}
+        settings={settings}
       />
 
       {/* Main Page Outlet */}
@@ -47,7 +63,9 @@ export const MainLayout: React.FC = () => {
           onQuickView: (product: Product) => setQuickViewProduct(product),
           onOpenAppointment: () => setIsAppointmentOpen(true),
           offers,
-          refreshOffers: fetchOffers
+          refreshOffers: fetchOffers,
+          settings,
+          refreshSettings: fetchSettings
         }} />
       </main>
 
@@ -55,6 +73,7 @@ export const MainLayout: React.FC = () => {
       <AppointmentModal
         isOpen={isAppointmentOpen}
         onClose={() => setIsAppointmentOpen(false)}
+        settings={settings}
       />
 
       {/* Quick View Outfit Modal */}
@@ -62,6 +81,7 @@ export const MainLayout: React.FC = () => {
         product={quickViewProduct}
         onClose={() => setQuickViewProduct(null)}
         offers={offers}
+        settings={settings}
       />
     </div>
   );
