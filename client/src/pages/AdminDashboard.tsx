@@ -202,11 +202,16 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const handleDeleteDress = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this dress?')) {
+    if (window.confirm('Are you sure you want to remove this dress?')) {
       try {
-        setDresses(prev => prev.filter(d => d.id !== id));
-        await api.deleteDress(id);
-        notify('Dress deleted successfully');
+        const res = await api.deleteDress(id);
+        if (res.isArchived) {
+          notify(res.message || 'Dress hidden from public catalogue due to booking history.');
+          setDresses(prev => prev.map(d => d.id === id ? ({ ...d, isHidden: true } as any) : d));
+        } else {
+          setDresses(prev => prev.filter(d => d.id !== id));
+          notify(res.message || 'Dress deleted successfully');
+        }
         fetchData();
       } catch (err: any) {
         alert(err.message || 'Failed to delete dress');

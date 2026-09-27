@@ -32,10 +32,6 @@ export const mapDressFromDb = (d) => {
     occasion: d.occasion || '',
     isAvailable: d.is_available !== false,
     isHidden: d.is_hidden === true,
-    isTrending: d.is_trending === true,
-    isNewArrival: d.is_new_arrival === true,
-    showOnHomepage: d.show_on_homepage !== false,
-    displayOrder: Number(d.display_order) || 0,
     createdAt: d.created_at
   };
 };
@@ -104,11 +100,7 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
       colors,
       occasion,
       isAvailable,
-      isHidden,
-      isTrending,
-      isNewArrival,
-      showOnHomepage,
-      displayOrder
+      isHidden
     } = req.body;
 
     if (!name || !name.trim()) {
@@ -120,6 +112,7 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
     const primary = primaryImage || allImages[0] || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800';
     if (allImages.length === 0) allImages.push(primary);
 
+    // ONLY columns that exist in the Supabase dresses schema:
     const newDress = {
       id: dressId,
       name: name.trim(),
@@ -141,11 +134,7 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
       review_count: 1,
       occasion: occasion || 'Special Occasion',
       is_available: isAvailable !== undefined ? isAvailable : true,
-      is_hidden: isHidden === true,
-      is_trending: isTrending === true,
-      is_new_arrival: isNewArrival === true,
-      show_on_homepage: showOnHomepage !== false,
-      display_order: Number(displayOrder) || 0
+      is_hidden: isHidden === true
     };
 
     const { data, error } = await supabase
@@ -180,6 +169,7 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
     const primary = body.primaryImage || allImages[0] || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800';
     if (allImages.length === 0) allImages.push(primary);
 
+    // ONLY columns that exist in the Supabase dresses schema:
     const updatePayload = {
       id: String(id),
       name: body.name ? body.name.trim() : 'Designer Dress',
@@ -199,11 +189,7 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
       colors: Array.isArray(body.colors) ? body.colors : ['Multi'],
       occasion: body.occasion || 'Special Occasion',
       is_available: body.isAvailable !== undefined ? body.isAvailable : true,
-      is_hidden: body.isHidden === true,
-      is_trending: body.isTrending === true,
-      is_new_arrival: body.isNewArrival === true,
-      show_on_homepage: body.showOnHomepage !== false,
-      display_order: Number(body.displayOrder) || 0
+      is_hidden: body.isHidden === true
     };
 
     // Try update first
@@ -223,7 +209,7 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
       return res.json({ message: 'Dress updated successfully', dress: mapDressFromDb(updatedData) });
     }
 
-    // If update returned null (row was not found in Supabase), perform upsert
+    // Upsert fallback if row didn't exist in Supabase
     const { data: upsertData, error: upsertError } = await supabase
       .from('dresses')
       .upsert([updatePayload])
@@ -242,7 +228,7 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
   }
 });
 
-// PATCH /api/dresses/admin/:id/toggle (Admin: Toggle Status)
+// PATCH /api/dresses/admin/:id/toggle (Admin: Toggle Status/Visibility)
 router.patch('/admin/:id/toggle', verifyToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -271,7 +257,7 @@ router.patch('/admin/:id/toggle', verifyToken, requireAdmin, async (req, res) =>
   }
 });
 
-// DELETE /api/dresses/admin/:id (Admin: Delete Dress)
+// DELETE /api/dresses/admin/:id (Admin: Safe Dress Deletion Handling)
 router.delete('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -279,17 +265,49 @@ router.delete('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Dress ID is required.' });
     }
 
-    const { error } = await supabase
+    // 1. Check if dress is referenced in bookings table
+    const { data: bookingRefs, error: bkgErr } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('dress_id', id);
+
+    if (bkgErr) {
+      console.warn('Booking reference check error:', bkgErr);
+    }
+
+    // 2. IF booking history exists: Hide dress instead of hard deleting
+    if (bookingRefs && bookingRefs.length > 0) {
+      const { data: hideData, error: hideError } = await supabase
+        .from('dresses')
+        .update({ is_hidden: true })
+        .eq('id', id)
+        .select('*')
+        .maybeSingle();
+
+      if (hideError) {
+        console.error('Error hiding dress with bookings in Supabase:', hideError);
+        return res.status(500).json({ error: `Failed to archive dress: ${hideError.message}` });
+      }
+
+      return res.json({
+        message: 'Cannot permanently delete this dress because it has booking history. It has been hidden from the public catalogue instead.',
+        isArchived: true,
+        dress: mapDressFromDb(hideData || { id, is_hidden: true })
+      });
+    }
+
+    // 3. IF NO booking history exists: Perform permanent deletion safely
+    const { error: deleteError } = await supabase
       .from('dresses')
       .delete()
       .eq('id', id);
 
-    if (error) {
-      console.error('Error deleting dress from Supabase:', error);
-      return res.status(500).json({ error: `Failed to delete dress: ${error.message}` });
+    if (deleteError) {
+      console.error('Error deleting dress from Supabase:', deleteError);
+      return res.status(500).json({ error: `Failed to delete dress: ${deleteError.message}` });
     }
 
-    res.json({ message: 'Dress deleted successfully', id });
+    res.json({ message: 'Dress deleted successfully', isDeleted: true, id });
   } catch (err) {
     console.error('DELETE /admin/:id error:', err);
     res.status(500).json({ error: 'Internal server error' });
