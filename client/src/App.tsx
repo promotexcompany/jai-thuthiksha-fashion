@@ -5,10 +5,6 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { MainLayout } from './layouts/MainLayout';
 import Home from './pages/Home';
 import Catalogue from './pages/Catalogue';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import Login from './pages/Login';
-import Register from './pages/Register';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 
@@ -22,10 +18,10 @@ function App() {
             <Route path="/" element={<MainLayout />}>
               <Route index element={<Home />} />
               <Route path="catalogue" element={<Catalogue />} />
-              <Route path="about" element={<About />} />
-              <Route path="contact" element={<Contact />} />
-              <Route path="login" element={<Login />} />
-              <Route path="register" element={<Register />} />
+              <Route path="about" element={<Navigate to="/" replace />} />
+              <Route path="contact" element={<Navigate to="/" replace />} />
+              <Route path="login" element={<Navigate to="/" replace />} />
+              <Route path="register" element={<Navigate to="/" replace />} />
             </Route>
 
             {/* Admin Routes */}

@@ -1,11 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PRODUCTS, CATEGORIES } from '../services/data';
 import { api } from '../services/api';
-import type { Product, CategoryOffer, Category } from '../types/fashion';
-import { Star, Eye, Sparkles, ArrowRight, Tag } from 'lucide-react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
-import { getCalculatedPrice } from '../utils/offerUtils';
-import type { MainLayoutContextType } from '../layouts/MainLayout';
+import type { Product, Category } from '../types/fashion';
+import { Eye, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface FeaturedProductsProps {
   onQuickView: (product: Product) => void;
@@ -18,9 +16,6 @@ export const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
   const [productsList, setProductsList] = useState<Product[]>(PRODUCTS);
   const [categoriesList, setCategoriesList] = useState<Category[]>(CATEGORIES);
   const navigate = useNavigate();
-
-  const context = useOutletContext<MainLayoutContextType>();
-  const offers: CategoryOffer[] = context?.offers || [];
 
   useEffect(() => {
     const loadData = async () => {
@@ -104,105 +99,68 @@ export const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
         </div>
 
         {/* Product Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {homepageProducts.map((product) => {
-            const priceInfo = getCalculatedPrice(product.rentalPrice4Days, product.categoryId || product.category, product.categoryLabel, offers);
+            const galleryCount = (product.galleryImages?.length || product.images?.length || 1);
             return (
               <div
                 key={product.id}
                 onClick={() => onQuickView(product)}
-                className="bg-white rounded-2xl overflow-hidden border border-pink-100 shadow-sm hover:shadow-xl transition duration-300 flex flex-col group cursor-pointer"
+                className="bg-white rounded-3xl overflow-hidden border border-pink-100 shadow-sm hover:shadow-2xl transition duration-500 flex flex-col group cursor-pointer"
               >
                 {/* Image Container */}
-                <div className="relative h-80 overflow-hidden bg-gray-100">
+                <div className="relative h-96 overflow-hidden bg-gray-100">
                   <img
                     src={product.image}
                     alt={product.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                   />
 
-                  {/* Badges */}
-                  <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-                    {priceInfo.hasOffer && (
-                      <span className="bg-red-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
-                        <Tag className="w-3 h-3" />
-                        {priceInfo.discountPercentage}% OFF
-                      </span>
-                    )}
-                    {product.isTrending && (
-                      <span className="bg-amber-400 text-pink-950 text-[10px] font-black uppercase px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" />
-                        Trending
-                      </span>
-                    )}
-                    {product.isNewArrival && (
-                      <span className="bg-pink-700 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-full shadow-md">
-                        New In
+                  {/* Category & Multi-View Badge */}
+                  <div className="absolute top-4 left-4 flex flex-col gap-1.5">
+                    <span className="bg-slate-900/90 text-amber-300 text-[11px] font-bold px-3 py-1 rounded-full backdrop-blur-sm border border-slate-700">
+                      {product.categoryLabel || product.category}
+                    </span>
+                    {galleryCount > 1 && (
+                      <span className="bg-pink-700/90 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-sm shadow-sm">
+                        {galleryCount} Views
                       </span>
                     )}
                   </div>
 
-                  {/* Quick View Button Hover Overlay */}
+                  {/* Quick View Overlay */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center p-4">
                     <button
                       onClick={() => onQuickView(product)}
-                      className="bg-white text-gray-900 px-4 py-2.5 rounded-full font-bold text-xs shadow-xl hover:bg-pink-700 hover:text-white transition flex items-center gap-2"
+                      className="bg-white text-gray-900 px-5 py-3 rounded-full font-bold text-xs shadow-xl hover:bg-pink-700 hover:text-white transition flex items-center gap-2"
                     >
-                      <Eye className="w-4 h-4" />
-                      <span>Quick View & Dates</span>
+                      <Eye className="w-4 h-4 text-pink-600 group-hover:text-white" />
+                      <span>View All Images & Enquire</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Product Info */}
+                {/* Dress Info */}
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
-                    <div className="flex justify-between items-center text-xs text-gray-500 mb-1">
-                      <span className="font-semibold text-pink-700">{product.designer}</span>
-                      <div className="flex items-center gap-1 text-amber-500 font-bold">
-                        <Star className="w-3.5 h-3.5 fill-amber-400" />
-                        <span>{product.rating}</span>
-                      </div>
-                    </div>
-
-                    <h3 className="font-bold text-gray-900 text-base font-serif line-clamp-1 group-hover:text-pink-700 transition">
+                    <h3 className="font-bold text-gray-900 text-lg font-serif line-clamp-1 group-hover:text-pink-700 transition">
                       {product.name}
                     </h3>
-
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      {product.sizes.map((s) => (
-                        <span key={s} className="bg-gray-100 text-gray-700 text-[10px] font-semibold px-2 py-0.5 rounded">
-                          {s}
-                        </span>
-                      ))}
-                    </div>
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                      {product.description || 'Exclusive luxury designer boutique outfit'}
+                    </p>
                   </div>
 
-                  {/* Price & Action */}
                   <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-gray-400 uppercase tracking-wider block">4-Day Rent</span>
-                      {priceInfo.hasOffer ? (
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-lg font-extrabold text-pink-700">
-                            ₹{priceInfo.finalPrice.toLocaleString('en-IN')}
-                          </span>
-                          <span className="text-xs text-gray-400 line-through">
-                            ₹{priceInfo.originalPrice.toLocaleString('en-IN')}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-lg font-extrabold text-pink-700">
-                          ₹{priceInfo.originalPrice.toLocaleString('en-IN')}
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-xs font-bold text-pink-700 flex items-center gap-1">
+                      <span>View Gallery</span>
+                    </span>
 
                     <button
                       onClick={() => onQuickView(product)}
                       className="px-4 py-2 rounded-xl bg-pink-50 text-pink-900 font-bold text-xs hover:bg-pink-700 hover:text-white transition border border-pink-200"
                     >
-                      Rent Now
+                      View Dress
                     </button>
                   </div>
 

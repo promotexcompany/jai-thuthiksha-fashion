@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Calendar, Search, Menu, X, Sparkles, PhoneCall, User, LogOut } from 'lucide-react';
+import { Calendar, Menu, X, Sparkles, PhoneCall, User } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 import { SHOP_CONFIG } from '../config/shopConfig';
 import { useCustomerAuth } from '../context/CustomerAuthContext';
@@ -29,12 +29,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const navLinks = [
     { name: 'Home', path: '/' },
-    { name: 'Catalogue & Rental', path: '/catalogue' },
-    { name: 'About Us', path: '/about' },
-    { name: 'Contact & Store', path: '/contact' },
+    { name: 'Photoshoot', path: '/catalogue?cat=photoshoot' },
+    { name: 'Reception', path: '/catalogue?cat=reception' },
+    { name: 'Bridesmaid', path: '/catalogue?cat=bridesmaid' },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === '/') return location.pathname === '/';
+    return location.pathname + location.search === path;
+  };
+
+  const whatsappNumber = settings?.whatsappNumber || SHOP_CONFIG.SHOP_WHATSAPP_NUMBER;
+  const whatsappUrl = `https://wa.me/91${whatsappNumber}?text=${encodeURIComponent(`Hi ${shopName}, I'm browsing your boutique collections.`)}`;
 
   return (
     <header className="sticky top-0 z-40 w-full shadow-sm bg-white/95 backdrop-blur-md border-b border-pink-100">
@@ -43,18 +49,18 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="bg-gradient-to-r from-pink-900 via-rose-900 to-amber-900 text-white py-2 px-4 text-xs font-medium text-center flex items-center justify-between">
         <div className="hidden sm:flex items-center gap-2 text-pink-200">
           <PhoneCall className="w-3.5 h-3.5 text-amber-300" />
-          <span>Stylist Concierge: {phoneDisplay}</span>
+          <span>Call Support: {phoneDisplay}</span>
         </div>
 
         <div className="mx-auto flex items-center justify-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
           <span className="tracking-wide">
-            ✨ <strong className="text-amber-200">Grand Rental Offer:</strong> Free Dry Cleaning & Custom Fitting on All Orders!
+            ✨ <strong className="text-amber-200">{shopName}</strong> — Exclusive Designer Outfit Collections
           </span>
         </div>
 
         <div className="hidden sm:flex items-center gap-4 text-pink-200 text-[11px] truncate max-w-xs">
-          <span>{shopName} - {shopAddress}</span>
+          <span>{shopAddress}</span>
         </div>
       </div>
 
@@ -76,7 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {shopName}
               </span>
               <span className="text-[10px] tracking-widest uppercase font-semibold text-amber-700 -mt-1">
-                Luxury Fashion Rental
+                Boutique Collection
               </span>
             </div>
           </Link>
@@ -101,54 +107,23 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Action Buttons */}
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="flex items-center space-x-3">
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition shadow-sm"
+            >
+              <PhoneCall className="w-3.5 h-3.5" />
+              <span>Contact on WhatsApp</span>
+            </a>
 
-            {/* Catalogue Search Link */}
             <Link
-              to="/catalogue"
-              className="p-2 text-gray-600 hover:text-pink-700 rounded-full hover:bg-pink-50 transition"
-              title="Search Catalogue"
+              to="/admin"
+              className="text-xs font-bold text-gray-500 hover:text-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
             >
-              <Search className="w-5 h-5" />
+              Admin Portal
             </Link>
-
-            {/* Book Trial Fitting Button */}
-            <button
-              onClick={onOpenAppointment}
-              className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full border border-pink-300 text-pink-800 text-xs font-bold hover:bg-pink-50 transition"
-            >
-              <Calendar className="w-4 h-4 text-pink-600" />
-              <span>Book Trial</span>
-            </button>
-
-
-
-            {/* Account Dynamic Authentication Button */}
-            {isAuthenticated && customerUser ? (
-              <div className="hidden sm:flex items-center gap-3 bg-pink-50/70 border border-pink-200/80 px-3 py-1.5 rounded-xl">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-gray-800">
-                  <User className="w-4 h-4 text-pink-600" />
-                  <span>{customerUser.name?.split(' ')[0] || 'Account'}</span>
-                </div>
-
-                <button
-                  onClick={handleCustomerLogout}
-                  className="text-xs font-semibold text-gray-500 hover:text-red-600 transition flex items-center gap-1 border-l border-pink-200 pl-2"
-                  title="Logout Customer Account"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Logout</span>
-                </button>
-              </div>
-            ) : (
-              <Link
-                to="/login"
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-gray-700 hover:text-pink-700 text-xs font-bold hover:bg-pink-50 transition border border-gray-200"
-              >
-                <User className="w-4 h-4 text-pink-600" />
-                <span>Sign In</span>
-              </Link>
-            )}
 
             {/* Mobile menu button */}
             <button
@@ -157,7 +132,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-
           </div>
 
         </div>

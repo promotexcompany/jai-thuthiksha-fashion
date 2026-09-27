@@ -30,7 +30,7 @@ export const AdminDashboard: React.FC = () => {
   const [dressForm, setDressForm] = useState({
     name: '',
     categoryId: '',
-    categoryName: 'Bride Dresses',
+    categoryName: 'Photoshoot',
     designer: 'Jai Thuthiksha Couture',
     retailPrice: 45000,
     rentalPrice4Days: 3999,
@@ -257,7 +257,7 @@ export const AdminDashboard: React.FC = () => {
   const handleOpenAddOffer = () => {
     setEditingOfferId(null);
     setOfferModalError(null);
-    const initialCat = categories[0] || { id: 'cat-1', name: 'Bride Dresses' };
+    const initialCat = categories[0] || { id: 'cat-1', name: 'Photoshoot' };
     setOfferForm({
       name: '',
       categoryId: initialCat.id,
@@ -637,7 +637,7 @@ export const AdminDashboard: React.FC = () => {
                     setDressForm({
                       name: '',
                       categoryId: categories[0]?.id || '',
-                      categoryName: categories[0]?.name || 'Bride Dresses',
+                      categoryName: categories[0]?.name || 'Photoshoot',
                       designer: 'Jai Thuthiksha Couture',
                       retailPrice: 45000,
                       rentalPrice4Days: 3999,
@@ -1291,7 +1291,7 @@ export const AdminDashboard: React.FC = () => {
                       setDressForm({
                         ...dressForm,
                         categoryId: e.target.value,
-                        categoryName: selectedCat ? selectedCat.name : 'Bride Dresses'
+                        categoryName: selectedCat ? selectedCat.name : 'Photoshoot'
                       });
                     }}
                     className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white outline-none"

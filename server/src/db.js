@@ -37,13 +37,9 @@ const getInitialData = () => {
       }
     ],
     categories: [
-      { id: 'cat-1', name: 'Bride Dresses', slug: 'bride-dresses', tagline: 'Royal Zardozi & Heritage Embroidery', enabled: true, order: 1, image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800' },
-      { id: 'cat-2', name: 'Silk Sarees', slug: 'silk-sarees', tagline: 'Handwoven Pure Mulberry Silk', enabled: true, order: 2, image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800' },
-      { id: 'cat-3', name: 'Maternity Wear', slug: 'maternity-wear', tagline: 'Comfortable & Elegant Photoshoot Fits', enabled: true, order: 3, image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&q=80&w=800' },
-      { id: 'cat-4', name: 'Photoshoot Dresses', slug: 'photoshoot-dresses', tagline: 'Dramatic Trails & Flared Coutures', enabled: true, order: 4, image: 'https://images.unsplash.com/photo-1546804784-896d0dca3814?auto=format&fit=crop&q=80&w=800' },
-      { id: 'cat-5', name: 'Traditional Wear', slug: 'traditional-wear', tagline: 'Anarkalis & Heavy Kurta Sets', enabled: true, order: 5, image: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800' },
-      { id: 'cat-6', name: 'Party Wear', slug: 'party-wear', tagline: 'Modern Indo-Western Gowns', enabled: true, order: 6, image: 'https://images.unsplash.com/photo-1597983073493-88cd35cf93b0?auto=format&fit=crop&q=80&w=800' },
-      { id: 'cat-7', name: 'Jewelry & Accessories', slug: 'jewelry', tagline: 'Kundan & Temple Jewelry Sets', enabled: true, order: 7, image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=800' }
+      { id: 'cat-photoshoot', name: 'Photoshoot', slug: 'photoshoot', tagline: 'Dramatic Trails & Flared Outfits for Pre-Wedding & Concept Shoots', enabled: true, order: 1, image: 'https://images.unsplash.com/photo-1546804784-896d0dca3814?auto=format&fit=crop&q=80&w=800' },
+      { id: 'cat-reception', name: 'Reception', slug: 'reception', tagline: 'Royal Gowns & Designer Outfits for Grand Receptions', enabled: true, order: 2, image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800' },
+      { id: 'cat-bridesmaid', name: 'Bridesmaid', slug: 'bridesmaid', tagline: 'Elegant Lehengas & Saree Coutures for Bridesmaids', enabled: true, order: 3, image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&q=80&w=800' }
     ],
     filters: {
       sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Custom Measurement'],

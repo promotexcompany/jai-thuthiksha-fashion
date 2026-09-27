@@ -2,49 +2,28 @@ import type { Product, Category, Review } from '../types/fashion';
 
 export const CATEGORIES: Category[] = [
   {
-    id: 'bridal',
-    name: 'Bridal Lehengas',
-    tagline: 'Royal Zardozi & Heritage Embroidery',
-    itemCount: 42,
+    id: 'photoshoot',
+    name: 'Photoshoot',
+    tagline: 'Dramatic Trails & Flared Outfits for Pre-Wedding & Concept Shoots',
+    itemCount: 24,
+    image: 'https://images.unsplash.com/photo-1546804784-896d0dca3814?auto=format&fit=crop&q=80&w=800',
+    badge: 'Popular'
+  },
+  {
+    id: 'reception',
+    name: 'Reception',
+    tagline: 'Royal Gowns & Designer Outfits for Grand Receptions',
+    itemCount: 32,
     image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800',
-    badge: 'Most Popular'
+    badge: 'Featured'
   },
   {
-    id: 'sarees',
-    name: 'Kanjeevaram & Designer Sarees',
-    tagline: 'Handwoven Pure Silk & Organza Elegance',
-    itemCount: 58,
-    image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=800',
+    id: 'bridesmaid',
+    name: 'Bridesmaid',
+    tagline: 'Elegant Lehengas & Saree Coutures for Bridesmaids',
+    itemCount: 28,
+    image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&q=80&w=800',
     badge: 'Trending'
-  },
-  {
-    id: 'indo-western',
-    name: 'Indo-Western & Gowns',
-    tagline: 'Modern Cut Coutures for Sangeet & Reception',
-    itemCount: 35,
-    image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&q=80&w=800'
-  },
-  {
-    id: 'menswear',
-    name: 'Sherwanis & Groom Wear',
-    tagline: 'Majestic Velvet & Brocade Sherwanis',
-    itemCount: 29,
-    image: 'https://images.unsplash.com/photo-1597983073493-88cd35cf93b0?auto=format&fit=crop&q=80&w=800'
-  },
-  {
-    id: 'anarkalis',
-    name: 'Anarkalis & Festive Suits',
-    tagline: 'Flowy Silhouettes for Haldi & Mehendi',
-    itemCount: 38,
-    image: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=800'
-  },
-  {
-    id: 'jewelry',
-    name: 'Bridal Jewelry & Accessories',
-    tagline: 'Kundan, Polki & Temple Jewelry Sets',
-    itemCount: 46,
-    image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=800',
-    badge: 'New Collection'
   }
 ];
 
