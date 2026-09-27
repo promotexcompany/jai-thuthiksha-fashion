@@ -112,7 +112,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition shadow-sm"
             >
               <PhoneCall className="w-3.5 h-3.5" />
               <span>Contact on WhatsApp</span>

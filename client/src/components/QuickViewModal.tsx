@@ -146,10 +146,17 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                     {product.categoryLabel || product.category} Collection
                   </span>
 
-                  {/* Dress Name */}
-                  <h2 className="text-2xl sm:text-3xl font-bold font-serif text-gray-900 leading-tight">
-                    {product.name}
-                  </h2>
+                  {/* Dress Name & Price */}
+                  <div className="flex items-start justify-between gap-4">
+                    <h2 className="text-2xl sm:text-3xl font-bold font-serif text-gray-900 leading-tight">
+                      {product.name}
+                    </h2>
+                    {((product as any).price || product.rentalPrice4Days || product.retailPrice) ? (
+                      <div className="text-xl sm:text-2xl font-extrabold text-pink-700 font-serif shrink-0">
+                        ₹{((product as any).price || product.rentalPrice4Days || product.retailPrice || 0).toLocaleString('en-IN')}
+                      </div>
+                    ) : null}
+                  </div>
 
                   {/* Dress Description & Details */}
                   {product.description && (
@@ -186,9 +193,9 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                 <div className="space-y-4 pt-4 border-t border-gray-100">
                   <button
                     onClick={handleBookViaWhatsApp}
-                    className="w-full py-4 rounded-2xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl transition cursor-pointer"
+                    className="w-full py-4 rounded-2xl font-bold text-sm bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl transition cursor-pointer"
                   >
-                    <MessageSquare className="w-5 h-5 fill-current" />
+                    <MessageSquare className="w-5 h-5 text-white fill-current" />
                     <span>Contact on WhatsApp</span>
                   </button>
 

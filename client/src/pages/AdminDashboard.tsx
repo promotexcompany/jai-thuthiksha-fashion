@@ -25,6 +25,7 @@ export const AdminDashboard: React.FC = () => {
   const [customImageUrl, setCustomImageUrl] = useState('');
   const [dressForm, setDressForm] = useState({
     name: '',
+    price: 2500,
     categoryId: '',
     categoryName: 'Photoshoot',
     images: [] as string[],
@@ -32,9 +33,9 @@ export const AdminDashboard: React.FC = () => {
     isHidden: false,
     // System fallbacks for database compatibility
     designer: 'Jai Thuthiksha Couture',
-    retailPrice: 1,
-    rentalPrice4Days: 1,
-    rentalPrice8Days: 1,
+    retailPrice: 2500,
+    rentalPrice4Days: 2500,
+    rentalPrice8Days: 2500,
     advanceAmount: 0,
     description: 'Designer fashion dress',
     fabric: 'Premium Fabric',
@@ -87,15 +88,16 @@ export const AdminDashboard: React.FC = () => {
     const defaultCat = categories[0] || { id: 'cat-1', name: 'Photoshoot' };
     setDressForm({
       name: '',
+      price: 2500,
       categoryId: defaultCat.id,
       categoryName: defaultCat.name,
       images: [],
       primaryImage: '',
       isHidden: false,
       designer: 'Jai Thuthiksha Couture',
-      retailPrice: 1,
-      rentalPrice4Days: 1,
-      rentalPrice8Days: 1,
+      retailPrice: 2500,
+      rentalPrice4Days: 2500,
+      rentalPrice8Days: 2500,
       advanceAmount: 0,
       description: 'Designer fashion dress',
       fabric: 'Premium Fabric',
@@ -119,18 +121,20 @@ export const AdminDashboard: React.FC = () => {
       : dress.image ? [dress.image] : [];
 
     const matchedCat = categories.find(c => c.id === (dress as any).categoryId || c.name.toLowerCase() === dress.category?.toLowerCase());
+    const dressPrice = (dress as any).price || dress.rentalPrice4Days || dress.retailPrice || 2500;
 
     setDressForm({
       name: dress.name,
+      price: dressPrice,
       categoryId: (dress as any).categoryId || matchedCat?.id || categories[0]?.id || 'cat-1',
       categoryName: dress.categoryLabel || matchedCat?.name || dress.category || 'Photoshoot',
       images: existingImages,
       primaryImage: dress.image || existingImages[0] || '',
       isHidden: (dress as any).isHidden || false,
       designer: dress.designer || 'Jai Thuthiksha Couture',
-      retailPrice: dress.retailPrice || 1,
-      rentalPrice4Days: dress.rentalPrice4Days || 1,
-      rentalPrice8Days: dress.rentalPrice8Days || 1,
+      retailPrice: dressPrice,
+      rentalPrice4Days: dressPrice,
+      rentalPrice8Days: dressPrice,
       advanceAmount: (dress as any).advanceAmount || 0,
       description: dress.description || 'Designer fashion dress',
       fabric: dress.fabric || 'Premium Fabric',
@@ -157,10 +161,14 @@ export const AdminDashboard: React.FC = () => {
       const selectedCat = categories.find(c => c.id === dressForm.categoryId);
       const catName = selectedCat ? selectedCat.name : dressForm.categoryName;
       const primary = dressForm.images[0] || dressForm.primaryImage || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800';
+      const priceVal = Number(dressForm.price) || 0;
 
       const payload = {
         ...dressForm,
         name: dressForm.name.trim(),
+        price: priceVal,
+        rentalPrice4Days: priceVal,
+        retailPrice: priceVal,
         categoryName: catName,
         primaryImage: primary,
         images: dressForm.images.length > 0 ? dressForm.images : [primary]
@@ -503,7 +511,7 @@ export const AdminDashboard: React.FC = () => {
                 <div>
                   <h3 className="text-lg font-bold font-serif text-white">Dress Inventory</h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Add new dresses, upload multiple images, edit details, or change categories.
+                    Add new dresses, set prices, upload multiple images, edit details, or change categories.
                   </p>
                 </div>
                 <button
@@ -534,6 +542,7 @@ export const AdminDashboard: React.FC = () => {
                       ? dress.images
                       : dress.image ? [dress.image] : [];
                     const isHidden = (dress as any).isHidden;
+                    const priceDisplay = (dress as any).price || dress.rentalPrice4Days || dress.retailPrice || 0;
 
                     return (
                       <div key={dress.id} className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden p-4 flex flex-col justify-between space-y-4 hover:border-slate-700 transition">
@@ -566,9 +575,14 @@ export const AdminDashboard: React.FC = () => {
                             )}
                           </div>
 
-                          {/* Title & Multi-Image Gallery Strip */}
+                          {/* Title, Price & Multi-Image Gallery Strip */}
                           <div>
-                            <h4 className="font-bold text-white text-base font-serif line-clamp-1">{dress.name}</h4>
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="font-bold text-white text-base font-serif line-clamp-1">{dress.name}</h4>
+                              <span className="text-amber-400 font-extrabold text-sm shrink-0">
+                                ₹{priceDisplay.toLocaleString('en-IN')}
+                              </span>
+                            </div>
                             
                             {/* Image Thumbnails Strip */}
                             {gallery.length > 0 && (
@@ -708,27 +722,46 @@ export const AdminDashboard: React.FC = () => {
                 />
               </div>
 
-              {/* Category Selector */}
-              <div>
-                <label className="block text-slate-300 font-bold mb-1.5">
-                  Category <span className="text-pink-400">*</span>
-                </label>
-                <select
-                  value={dressForm.categoryId}
-                  onChange={(e) => {
-                    const selectedCat = categories.find(c => c.id === e.target.value);
-                    setDressForm({
-                      ...dressForm,
-                      categoryId: e.target.value,
-                      categoryName: selectedCat ? selectedCat.name : 'Photoshoot'
-                    });
-                  }}
-                  className="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm outline-none focus:border-pink-500 transition"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+              {/* Price & Category Controls Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Category Selector */}
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1.5">
+                    Category <span className="text-pink-400">*</span>
+                  </label>
+                  <select
+                    value={dressForm.categoryId}
+                    onChange={(e) => {
+                      const selectedCat = categories.find(c => c.id === e.target.value);
+                      setDressForm({
+                        ...dressForm,
+                        categoryId: e.target.value,
+                        categoryName: selectedCat ? selectedCat.name : 'Photoshoot'
+                      });
+                    }}
+                    className="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm outline-none focus:border-pink-500 transition"
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Price (₹) Field */}
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1.5">
+                    Price (₹) <span className="text-pink-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={dressForm.price}
+                    onChange={(e) => setDressForm({ ...dressForm, price: Number(e.target.value) })}
+                    placeholder="e.g. 2500"
+                    className="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm outline-none focus:border-pink-500 transition font-bold text-amber-300"
+                  />
+                </div>
               </div>
 
               {/* Multi-Image Management */}

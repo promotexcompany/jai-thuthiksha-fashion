@@ -6,18 +6,20 @@ const router = express.Router();
 
 export const mapDressFromDb = (d) => {
   if (!d) return null;
+  const p = Number(d.rental_price_4_days) || Number(d.retail_price) || 0;
   return {
     id: String(d.id),
     name: d.name || 'Designer Outfit',
+    price: p,
+    rentalPrice4Days: p,
+    retailPrice: p,
+    rentalPrice8Days: Number(d.rental_price_8_days) || p,
+    advanceAmount: Number(d.advance_amount) || 0,
     categoryId: d.category_id || 'cat-1',
     categoryName: d.category_name || 'Photoshoot',
     category: d.category_id || 'photoshoot',
     categoryLabel: d.category_name || 'Photoshoot',
     designer: d.designer || 'Jai Thuthiksha Couture',
-    retailPrice: Number(d.retail_price) || 0,
-    rentalPrice4Days: Number(d.rental_price_4_days) || 0,
-    rentalPrice8Days: Number(d.rental_price_8_days) || 0,
-    advanceAmount: Number(d.advance_amount) || 0,
     images: Array.isArray(d.images) && d.images.length > 0 ? d.images : (d.primary_image ? [d.primary_image] : []),
     image: d.primary_image || (Array.isArray(d.images) && d.images[0]) || '',
     primaryImage: d.primary_image || (Array.isArray(d.images) && d.images[0]) || '',
@@ -84,12 +86,12 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
   try {
     const {
       name,
+      price,
+      rentalPrice4Days,
+      retailPrice,
       categoryId,
       categoryName,
       designer,
-      retailPrice,
-      rentalPrice4Days,
-      rentalPrice8Days,
       advanceAmount,
       images,
       primaryImage,
@@ -112,16 +114,17 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
     const primary = primaryImage || allImages[0] || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800';
     if (allImages.length === 0) allImages.push(primary);
 
-    // ONLY columns that exist in the Supabase dresses schema:
+    const priceNum = Number(price ?? rentalPrice4Days ?? retailPrice ?? 0);
+
     const newDress = {
       id: dressId,
       name: name.trim(),
       category_id: categoryId || 'cat-1',
       category_name: categoryName || 'Photoshoot',
       designer: designer || 'Jai Thuthiksha Couture',
-      retail_price: Number(retailPrice) || 1,
-      rental_price_4_days: Number(rentalPrice4Days) || 1,
-      rental_price_8_days: Number(rentalPrice8Days) || 1,
+      retail_price: priceNum,
+      rental_price_4_days: priceNum,
+      rental_price_8_days: priceNum,
       advance_amount: Number(advanceAmount) || 0,
       images: allImages,
       primary_image: primary,
@@ -169,16 +172,17 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
     const primary = body.primaryImage || allImages[0] || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800';
     if (allImages.length === 0) allImages.push(primary);
 
-    // ONLY columns that exist in the Supabase dresses schema:
+    const priceNum = Number(body.price ?? body.rentalPrice4Days ?? body.retailPrice ?? 0);
+
     const updatePayload = {
       id: String(id),
       name: body.name ? body.name.trim() : 'Designer Dress',
       category_id: body.categoryId || 'cat-1',
       category_name: body.categoryName || 'Photoshoot',
       designer: body.designer || 'Jai Thuthiksha Couture',
-      retail_price: Number(body.retailPrice) || 1,
-      rental_price_4_days: Number(body.rentalPrice4Days) || 1,
-      rental_price_8_days: Number(body.rentalPrice8Days) || 1,
+      retail_price: priceNum,
+      rental_price_4_days: priceNum,
+      rental_price_8_days: priceNum,
       advance_amount: Number(body.advanceAmount) || 0,
       images: allImages,
       primary_image: primary,
@@ -209,7 +213,7 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
       return res.json({ message: 'Dress updated successfully', dress: mapDressFromDb(updatedData) });
     }
 
-    // Upsert fallback if row didn't exist in Supabase
+    // Upsert fallback
     const { data: upsertData, error: upsertError } = await supabase
       .from('dresses')
       .upsert([updatePayload])
