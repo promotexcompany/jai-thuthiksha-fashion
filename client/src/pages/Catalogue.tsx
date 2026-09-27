@@ -12,29 +12,40 @@ export const Catalogue: React.FC = () => {
 
   const selectedCatParam = searchParams.get('cat') || 'all';
 
-  const [productsList, setProductsList] = useState<Product[]>(PRODUCTS);
-  const [categoriesList, setCategoriesList] = useState<Category[]>(CATEGORIES);
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [categoriesList, setCategoriesList] = useState<Category[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string>(selectedCatParam);
 
   // Load live data from API
   useEffect(() => {
+    let isMounted = true;
     const loadLiveData = async () => {
       try {
         const [liveDresses, liveCats] = await Promise.all([
           api.getPublicDresses(),
           api.getPublicCategories()
         ]);
-        if (liveDresses && Array.isArray(liveDresses) && liveDresses.length > 0) {
+        if (!isMounted) return;
+        if (Array.isArray(liveDresses)) {
           setProductsList(liveDresses);
+        } else {
+          setProductsList(PRODUCTS);
         }
-        if (liveCats && Array.isArray(liveCats) && liveCats.length > 0) {
+        if (Array.isArray(liveCats) && liveCats.length > 0) {
           setCategoriesList(liveCats);
+        } else {
+          setCategoriesList(CATEGORIES);
         }
       } catch (err) {
-        console.warn('Using offline fallback data for catalogue');
+        if (isMounted) {
+          console.warn('Using offline fallback data for catalogue');
+          setProductsList(PRODUCTS);
+          setCategoriesList(CATEGORIES);
+        }
       }
     };
     loadLiveData();
+    return () => { isMounted = false; };
   }, []);
 
   const filteredProducts = useMemo(() => {
@@ -42,17 +53,33 @@ export const Catalogue: React.FC = () => {
       if ((p as any).isHidden) return false;
       // Category check
       if (categoryFilter !== 'all') {
-        const matchesCategory = p.category === categoryFilter ||
-                                (p as any).categoryId === categoryFilter ||
-                                p.categoryLabel?.toLowerCase() === categoryFilter.toLowerCase() ||
-                                (categoryFilter === 'photoshoot' && (p.category === 'cat-photoshoot' || p.category === 'photoshoot' || p.categoryLabel?.toLowerCase().includes('photo'))) ||
-                                (categoryFilter === 'reception' && (p.category === 'cat-reception' || p.category === 'reception' || p.categoryLabel?.toLowerCase().includes('recept'))) ||
-                                (categoryFilter === 'bridesmaid' && (p.category === 'cat-bridesmaid' || p.category === 'bridesmaid' || p.categoryLabel?.toLowerCase().includes('bride')));
-        if (!matchesCategory) return false;
+        const selectedCat = categoriesList.find(
+          (c) => c.id === categoryFilter || c.slug === categoryFilter || c.name.toLowerCase() === categoryFilter.toLowerCase()
+        );
+
+        const pCatId = (p as any).categoryId || p.category;
+        const pCatName = (p as any).categoryName || p.categoryLabel || p.category;
+        const pCatNameLower = (pCatName || '').toLowerCase();
+
+        const matchesIdOrSlug =
+          pCatId === categoryFilter ||
+          p.category === categoryFilter ||
+          (selectedCat && (pCatId === selectedCat.id || p.category === selectedCat.id || p.category === selectedCat.slug));
+
+        const matchesName =
+          pCatNameLower === categoryFilter.toLowerCase() ||
+          (selectedCat && pCatNameLower === selectedCat.name.toLowerCase());
+
+        const matchesLegacy =
+          (categoryFilter === 'photoshoot' && (pCatId === 'cat-1' || pCatId === 'cat-photoshoot' || pCatNameLower.includes('photo'))) ||
+          (categoryFilter === 'reception' && (pCatId === 'cat-2' || pCatId === 'cat-reception' || pCatNameLower.includes('recept'))) ||
+          (categoryFilter === 'bridesmaid' && (pCatId === 'cat-6' || pCatId === 'cat-bridesmaid' || pCatNameLower.includes('bride')));
+
+        if (!matchesIdOrSlug && !matchesName && !matchesLegacy) return false;
       }
       return true;
     });
-  }, [productsList, categoryFilter]);
+  }, [productsList, categoriesList, categoryFilter]);
 
   const handleCategorySelect = (catId: string) => {
     setCategoryFilter(catId);

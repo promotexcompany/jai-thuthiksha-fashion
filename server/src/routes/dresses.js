@@ -41,6 +41,10 @@ export const mapDressFromDb = (d) => {
 // GET /api/dresses (Public Catalogue - Non Hidden)
 router.get('/', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const { data: dresses, error } = await supabase
       .from('dresses')
       .select('*')

@@ -7,27 +7,28 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 
 export const CategoryGrid: React.FC = () => {
   const navigate = useNavigate();
-  const [categoriesList, setCategoriesList] = useState<Category[]>(CATEGORIES);
+  const [categoriesList, setCategoriesList] = useState<Category[]>([]);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchCats = async () => {
       try {
         const liveCats = await api.getPublicCategories();
+        if (!isMounted) return;
         if (Array.isArray(liveCats) && liveCats.length > 0) {
-          // Filter to only match Photoshoot, Reception, Bridesmaid
-          const filtered = liveCats.filter((c) => {
-            const nameLower = (c.name || '').toLowerCase();
-            return nameLower.includes('photo') || nameLower.includes('recept') || nameLower.includes('bride');
-          });
-          if (filtered.length > 0) {
-            setCategoriesList(filtered);
-          }
+          setCategoriesList(liveCats);
+        } else {
+          setCategoriesList(CATEGORIES);
         }
       } catch (err) {
-        console.warn('Using offline categories fallback');
+        if (isMounted) {
+          console.warn('Using offline categories fallback');
+          setCategoriesList(CATEGORIES);
+        }
       }
     };
     fetchCats();
+    return () => { isMounted = false; };
   }, []);
 
   return (

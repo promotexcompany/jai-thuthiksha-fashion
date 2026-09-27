@@ -43,6 +43,21 @@ const getAdminHeaders = () => {
   };
 };
 
+const getNoCacheUrl = (path: string) => {
+  const url = `${API_BASE_URL}${path}`;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}_t=${Date.now()}`;
+};
+
+const getNoCacheHeaders = (extraHeaders: Record<string, string> = {}) => {
+  return {
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    ...extraHeaders
+  };
+};
+
 export const api = {
   // Authentication - Customer & Admin
   async register(name: string, email: string, pass: string) {
@@ -80,8 +95,9 @@ export const api = {
   },
 
   async getProfile() {
-    const res = await fetch(`${API_BASE_URL}/auth/me`, {
-      headers: getAdminHeaders()
+    const res = await fetch(getNoCacheUrl('/auth/me'), {
+      cache: 'no-store',
+      headers: getNoCacheHeaders(getAdminHeaders())
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to fetch user profile');
@@ -89,8 +105,9 @@ export const api = {
   },
 
   async getCustomerProfile() {
-    const res = await fetch(`${API_BASE_URL}/auth/me`, {
-      headers: getCustomerHeaders()
+    const res = await fetch(getNoCacheUrl('/auth/me'), {
+      cache: 'no-store',
+      headers: getNoCacheHeaders(getCustomerHeaders())
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to fetch customer profile');
@@ -100,7 +117,10 @@ export const api = {
   // Dresses
   async getPublicDresses() {
     try {
-      const res = await fetch(`${API_BASE_URL}/dresses`);
+      const res = await fetch(getNoCacheUrl('/dresses'), {
+        cache: 'no-store',
+        headers: getNoCacheHeaders()
+      });
       if (!res.ok) throw new Error('Failed to fetch dresses');
       return await res.json();
     } catch (err) {
@@ -110,8 +130,9 @@ export const api = {
   },
 
   async getAllAdminDresses() {
-    const res = await fetch(`${API_BASE_URL}/dresses/admin/all`, {
-      headers: getAdminHeaders()
+    const res = await fetch(getNoCacheUrl('/dresses/admin/all'), {
+      cache: 'no-store',
+      headers: getNoCacheHeaders(getAdminHeaders())
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to fetch admin dresses');
@@ -164,7 +185,10 @@ export const api = {
   // Categories
   async getPublicCategories() {
     try {
-      const res = await fetch(`${API_BASE_URL}/categories`);
+      const res = await fetch(getNoCacheUrl('/categories'), {
+        cache: 'no-store',
+        headers: getNoCacheHeaders()
+      });
       if (!res.ok) throw new Error('Failed to fetch categories');
       return await res.json();
     } catch (err) {
@@ -174,8 +198,9 @@ export const api = {
   },
 
   async getAllAdminCategories() {
-    const res = await fetch(`${API_BASE_URL}/categories/admin/all`, {
-      headers: getAdminHeaders()
+    const res = await fetch(getNoCacheUrl('/categories/admin/all'), {
+      cache: 'no-store',
+      headers: getNoCacheHeaders(getAdminHeaders())
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to fetch admin categories');
@@ -217,7 +242,10 @@ export const api = {
   // Filters
   async getFilters() {
     try {
-      const res = await fetch(`${API_BASE_URL}/filters`);
+      const res = await fetch(getNoCacheUrl('/filters'), {
+        cache: 'no-store',
+        headers: getNoCacheHeaders()
+      });
       if (!res.ok) throw new Error('Failed to fetch filters');
       return await res.json();
     } catch (err) {
@@ -252,8 +280,9 @@ export const api = {
   },
 
   async getAllAdminBookings() {
-    const res = await fetch(`${API_BASE_URL}/bookings/admin/all`, {
-      headers: getAdminHeaders()
+    const res = await fetch(getNoCacheUrl('/bookings/admin/all'), {
+      cache: 'no-store',
+      headers: getNoCacheHeaders(getAdminHeaders())
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to fetch admin bookings');
@@ -307,7 +336,10 @@ export const api = {
   // Settings
   async getSettings() {
     try {
-      const res = await fetch(`${API_BASE_URL}/settings`);
+      const res = await fetch(getNoCacheUrl('/settings'), {
+        cache: 'no-store',
+        headers: getNoCacheHeaders()
+      });
       if (!res.ok) throw new Error('Failed to fetch settings');
       return await res.json();
     } catch (err) {
@@ -329,7 +361,10 @@ export const api = {
   // Offers / Discounts
   async getPublicOffers() {
     try {
-      const res = await fetch(`${API_BASE_URL}/offers`);
+      const res = await fetch(getNoCacheUrl('/offers'), {
+        cache: 'no-store',
+        headers: getNoCacheHeaders()
+      });
       if (!res.ok) throw new Error('Failed to fetch active offers');
       return await res.json();
     } catch (err) {
@@ -339,8 +374,9 @@ export const api = {
   },
 
   async getAllAdminOffers() {
-    const res = await fetch(`${API_BASE_URL}/offers/admin/all`, {
-      headers: getAdminHeaders()
+    const res = await fetch(getNoCacheUrl('/offers/admin/all'), {
+      cache: 'no-store',
+      headers: getNoCacheHeaders(getAdminHeaders())
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to fetch admin offers');

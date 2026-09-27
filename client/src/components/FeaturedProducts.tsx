@@ -13,28 +13,39 @@ export const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
   onQuickView,
 }) => {
   const [activeTab, setActiveTab] = useState<string>('all');
-  const [productsList, setProductsList] = useState<Product[]>(PRODUCTS);
-  const [categoriesList, setCategoriesList] = useState<Category[]>(CATEGORIES);
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [categoriesList, setCategoriesList] = useState<Category[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
+    let isMounted = true;
     const loadData = async () => {
       try {
         const [liveDresses, liveCats] = await Promise.all([
           api.getPublicDresses(),
           api.getPublicCategories()
         ]);
-        if (Array.isArray(liveDresses) && liveDresses.length > 0) {
+        if (!isMounted) return;
+        if (Array.isArray(liveDresses)) {
           setProductsList(liveDresses);
+        } else {
+          setProductsList(PRODUCTS);
         }
         if (Array.isArray(liveCats) && liveCats.length > 0) {
           setCategoriesList(liveCats);
+        } else {
+          setCategoriesList(CATEGORIES);
         }
       } catch (err) {
-        console.warn('Using offline fallback for featured products');
+        if (isMounted) {
+          console.warn('Using offline fallback for featured products');
+          setProductsList(PRODUCTS);
+          setCategoriesList(CATEGORIES);
+        }
       }
     };
     loadData();
+    return () => { isMounted = false; };
   }, []);
 
   // Filter dresses for homepage: showOnHomepage !== false && !isHidden

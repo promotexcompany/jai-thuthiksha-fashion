@@ -22,6 +22,10 @@ export const mapCategoryFromDb = (c) => {
 // GET /api/categories (Public Enabled Categories)
 router.get('/', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const { data: categories, error } = await supabase
       .from('categories')
       .select('*')
