@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
-import { Footer } from '../components/Footer';
 import { AppointmentModal } from '../components/AppointmentModal';
 import { QuickViewModal } from '../components/QuickViewModal';
 import type { CategoryOffer, Product } from '../types/fashion';
@@ -51,9 +50,6 @@ export const MainLayout: React.FC = () => {
           refreshOffers: fetchOffers
         }} />
       </main>
-
-      {/* Footer */}
-      <Footer />
 
       {/* Trial Appointment Booking Modal */}
       <AppointmentModal
