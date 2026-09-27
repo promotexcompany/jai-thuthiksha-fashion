@@ -16,6 +16,7 @@ export const AdminDashboard: React.FC = () => {
   const [dresses, setDresses] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dress Form State
   const [showDressModal, setShowDressModal] = useState(false);
@@ -56,7 +57,7 @@ export const AdminDashboard: React.FC = () => {
     enabled: true
   });
 
-  // Load backend data
+  // Load backend data efficiently
   const fetchData = async () => {
     try {
       const [dressesData, catsData] = await Promise.all([
@@ -83,7 +84,7 @@ export const AdminDashboard: React.FC = () => {
   // Dress Handlers
   const handleOpenAddDress = () => {
     setEditingDressId(null);
-    const defaultCat = categories[0] || { id: 'cat-photoshoot', name: 'Photoshoot' };
+    const defaultCat = categories[0] || { id: 'cat-1', name: 'Photoshoot' };
     setDressForm({
       name: '',
       categoryId: defaultCat.id,
@@ -121,7 +122,7 @@ export const AdminDashboard: React.FC = () => {
 
     setDressForm({
       name: dress.name,
-      categoryId: (dress as any).categoryId || matchedCat?.id || categories[0]?.id || 'cat-photoshoot',
+      categoryId: (dress as any).categoryId || matchedCat?.id || categories[0]?.id || 'cat-1',
       categoryName: dress.categoryLabel || matchedCat?.name || dress.category || 'Photoshoot',
       images: existingImages,
       primaryImage: dress.image || existingImages[0] || '',
@@ -151,6 +152,7 @@ export const AdminDashboard: React.FC = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const selectedCat = categories.find(c => c.id === dressForm.categoryId);
       const catName = selectedCat ? selectedCat.name : dressForm.categoryName;
@@ -158,16 +160,23 @@ export const AdminDashboard: React.FC = () => {
 
       const payload = {
         ...dressForm,
+        name: dressForm.name.trim(),
         categoryName: catName,
         primaryImage: primary,
         images: dressForm.images.length > 0 ? dressForm.images : [primary]
       };
 
       if (editingDressId) {
-        await api.updateDress(editingDressId, payload);
+        const res = await api.updateDress(editingDressId, payload);
+        if (res.dress) {
+          setDresses(prev => prev.map(d => d.id === editingDressId ? res.dress : d));
+        }
         notify('Dress updated successfully!');
       } else {
-        await api.addDress(payload);
+        const res = await api.addDress(payload);
+        if (res.dress) {
+          setDresses(prev => [res.dress, ...prev]);
+        }
         notify('New dress created and saved!');
       }
       setShowDressModal(false);
@@ -175,27 +184,33 @@ export const AdminDashboard: React.FC = () => {
       fetchData();
     } catch (err: any) {
       alert(err.message || 'Failed to save dress');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleToggleDressVisibility = async (id: string, currentIsHidden: boolean) => {
     try {
+      setDresses(prev => prev.map(d => d.id === id ? ({ ...d, isHidden: !currentIsHidden } as any) : d));
       await api.toggleDressStatus(id, { isHidden: !currentIsHidden });
       notify(`Dress ${!currentIsHidden ? 'hidden from' : 'shown in'} catalogue.`);
       fetchData();
     } catch (err: any) {
       alert(err.message || 'Failed to update dress status');
+      fetchData();
     }
   };
 
   const handleDeleteDress = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this dress?')) {
       try {
+        setDresses(prev => prev.filter(d => d.id !== id));
         await api.deleteDress(id);
         notify('Dress deleted successfully');
         fetchData();
       } catch (err: any) {
         alert(err.message || 'Failed to delete dress');
+        fetchData();
       }
     }
   };
@@ -246,6 +261,18 @@ export const AdminDashboard: React.FC = () => {
     });
   };
 
+  const handleSetPrimaryImage = (index: number) => {
+    const selected = dressForm.images[index];
+    if (!selected) return;
+    const reordered = [selected, ...dressForm.images.filter((_, i) => i !== index)];
+    setDressForm({
+      ...dressForm,
+      images: reordered,
+      primaryImage: selected
+    });
+    notify('Main cover image updated');
+  };
+
   // Category Handlers
   const handleOpenAddCategory = () => {
     setEditingCatId(null);
@@ -278,12 +305,19 @@ export const AdminDashboard: React.FC = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       if (editingCatId) {
-        await api.updateCategory(editingCatId, catForm);
+        const res = await api.updateCategory(editingCatId, catForm);
+        if (res.category) {
+          setCategories(prev => prev.map(c => c.id === editingCatId ? res.category : c));
+        }
         notify('Category updated successfully');
       } else {
-        await api.addCategory(catForm);
+        const res = await api.addCategory(catForm);
+        if (res.category) {
+          setCategories(prev => [...prev, res.category]);
+        }
         notify('New category added successfully');
       }
       setShowCategoryModal(false);
@@ -291,17 +325,21 @@ export const AdminDashboard: React.FC = () => {
       fetchData();
     } catch (err: any) {
       alert(err.message || 'Failed to save category');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (window.confirm('Delete this category? Associated dresses will remain safe.')) {
+    if (window.confirm('Delete this category? Category will be removed if no dresses are currently assigned.')) {
       try {
         await api.deleteCategory(id);
+        setCategories(prev => prev.filter(c => c.id !== id));
         notify('Category deleted successfully');
         fetchData();
       } catch (err: any) {
         alert(err.message || 'Failed to delete category');
+        fetchData();
       }
     }
   };
@@ -728,25 +766,35 @@ export const AdminDashboard: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Image Previews & Individual Deletion */}
+                {/* Image Previews, Set Main Image & Individual Deletion */}
                 {dressForm.images.length > 0 ? (
                   <div className="space-y-2 pt-2">
                     <span className="text-[11px] text-slate-400 font-bold block">
-                      Attached Images ({dressForm.images.length}) — Drag or remove individual images:
+                      Attached Images ({dressForm.images.length}) — Click "Set Main" to pick primary cover:
                     </span>
-                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5 max-h-48 overflow-y-auto p-1">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-52 overflow-y-auto p-1">
                       {dressForm.images.map((imgUrl, idx) => (
-                        <div key={idx} className="relative aspect-[3/4] rounded-xl overflow-hidden border border-slate-700 group bg-slate-900">
+                        <div key={idx} className={`relative aspect-[3/4] rounded-xl overflow-hidden border transition bg-slate-900 ${idx === 0 ? 'border-pink-500 ring-2 ring-pink-500/50' : 'border-slate-700'}`}>
                           <img src={imgUrl} alt={`Image ${idx + 1}`} className="w-full h-full object-cover" />
-                          {idx === 0 && (
-                            <span className="absolute bottom-1 left-1 bg-pink-700 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
-                              Main
+                          
+                          {idx === 0 ? (
+                            <span className="absolute bottom-1.5 left-1.5 bg-pink-700 text-white text-[9px] font-black px-2 py-0.5 rounded-md shadow">
+                              Main Cover
                             </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSetPrimaryImage(idx)}
+                              className="absolute bottom-1.5 left-1.5 bg-slate-900/90 text-amber-300 hover:text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-slate-700"
+                            >
+                              Set Main
+                            </button>
                           )}
+
                           <button
                             type="button"
                             onClick={() => handleRemoveImage(idx)}
-                            className="absolute top-1 right-1 bg-red-600/90 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow-md hover:bg-red-700 transition"
+                            className="absolute top-1.5 right-1.5 bg-red-600/90 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow-md hover:bg-red-700 transition"
                             title="Remove image"
                           >
                             ×
@@ -776,9 +824,10 @@ export const AdminDashboard: React.FC = () => {
               {/* Save Button */}
               <button
                 type="submit"
-                className="w-full gradient-btn text-white py-3.5 rounded-xl font-bold shadow-lg text-sm mt-2"
+                disabled={isSubmitting}
+                className="w-full gradient-btn text-white py-3.5 rounded-xl font-bold shadow-lg text-sm mt-2 disabled:opacity-50"
               >
-                {editingDressId ? 'Save Dress Changes' : 'Create & Save Dress'}
+                {isSubmitting ? 'Saving Dress Changes...' : (editingDressId ? 'Save Dress Changes' : 'Create & Save Dress')}
               </button>
 
             </form>
@@ -819,9 +868,10 @@ export const AdminDashboard: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full gradient-btn text-white py-3.5 rounded-xl font-bold text-sm shadow-lg mt-2"
+                disabled={isSubmitting}
+                className="w-full gradient-btn text-white py-3.5 rounded-xl font-bold text-sm shadow-lg mt-2 disabled:opacity-50"
               >
-                Save Category
+                {isSubmitting ? 'Saving Category...' : 'Save Category'}
               </button>
             </form>
           </div>

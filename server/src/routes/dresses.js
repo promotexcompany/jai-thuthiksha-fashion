@@ -7,26 +7,26 @@ const router = express.Router();
 export const mapDressFromDb = (d) => {
   if (!d) return null;
   return {
-    id: d.id,
-    name: d.name,
-    categoryId: d.category_id,
-    categoryName: d.category_name,
-    category: d.category_id || 'bridal',
-    categoryLabel: d.category_name || 'Bridal Wear',
+    id: String(d.id),
+    name: d.name || 'Designer Outfit',
+    categoryId: d.category_id || 'cat-1',
+    categoryName: d.category_name || 'Photoshoot',
+    category: d.category_id || 'photoshoot',
+    categoryLabel: d.category_name || 'Photoshoot',
     designer: d.designer || 'Jai Thuthiksha Couture',
     retailPrice: Number(d.retail_price) || 0,
     rentalPrice4Days: Number(d.rental_price_4_days) || 0,
     rentalPrice8Days: Number(d.rental_price_8_days) || 0,
     advanceAmount: Number(d.advance_amount) || 0,
-    images: d.images || [],
-    image: d.primary_image || (d.images && d.images[0]) || '',
-    primaryImage: d.primary_image || (d.images && d.images[0]) || '',
-    galleryImages: d.images || [],
+    images: Array.isArray(d.images) && d.images.length > 0 ? d.images : (d.primary_image ? [d.primary_image] : []),
+    image: d.primary_image || (Array.isArray(d.images) && d.images[0]) || '',
+    primaryImage: d.primary_image || (Array.isArray(d.images) && d.images[0]) || '',
+    galleryImages: Array.isArray(d.images) && d.images.length > 0 ? d.images : (d.primary_image ? [d.primary_image] : []),
     description: d.description || '',
     fabric: d.fabric || '',
     workType: d.work_type || '',
-    sizes: d.sizes || [],
-    colors: d.colors || [],
+    sizes: Array.isArray(d.sizes) ? d.sizes : [],
+    colors: Array.isArray(d.colors) ? d.colors : [],
     rating: Number(d.rating) || 5.0,
     reviewCount: Number(d.review_count) || 0,
     occasion: d.occasion || '',
@@ -40,7 +40,7 @@ export const mapDressFromDb = (d) => {
   };
 };
 
-// GET /api/dresses (Public Catalogue)
+// GET /api/dresses (Public Catalogue - Non Hidden)
 router.get('/', async (req, res) => {
   try {
     const { data: dresses, error } = await supabase
@@ -51,7 +51,7 @@ router.get('/', async (req, res) => {
 
     if (error) {
       console.error('Error fetching public dresses from Supabase:', error);
-      return res.status(500).json({ error: 'Database error fetching dresses' });
+      return res.status(500).json({ error: 'Database error fetching dresses.' });
     }
 
     const formatted = (dresses || []).map(mapDressFromDb);
@@ -72,7 +72,7 @@ router.get('/admin/all', verifyToken, requireAdmin, async (req, res) => {
 
     if (error) {
       console.error('Error fetching admin dresses from Supabase:', error);
-      return res.status(500).json({ error: 'Database error fetching admin dresses' });
+      return res.status(500).json({ error: 'Database error fetching admin dresses.' });
     }
 
     const formatted = (dresses || []).map(mapDressFromDb);
@@ -111,39 +111,40 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
       displayOrder
     } = req.body;
 
-    if (!name || (!rentalPrice4Days && rentalPrice4Days !== 0)) {
-      return res.status(400).json({ error: 'Dress name and rental price are required.' });
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Dress name is required.' });
     }
 
     const dressId = `jtf-${Date.now()}`;
-    const primary = primaryImage || (images && images[0]) || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800';
-    const allImages = images && images.length > 0 ? images : [primary];
+    const allImages = Array.isArray(images) && images.length > 0 ? images : (primaryImage ? [primaryImage] : []);
+    const primary = primaryImage || allImages[0] || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800';
+    if (allImages.length === 0) allImages.push(primary);
 
     const newDress = {
       id: dressId,
-      name,
+      name: name.trim(),
       category_id: categoryId || 'cat-1',
-      category_name: categoryName || 'Bride Dresses',
+      category_name: categoryName || 'Photoshoot',
       designer: designer || 'Jai Thuthiksha Couture',
-      retail_price: Number(retailPrice) || 50000,
-      rental_price_4_days: Number(rentalPrice4Days) || 3999,
-      rental_price_8_days: Number(rentalPrice8Days) || 6499,
-      advance_amount: Number(advanceAmount) || 1500,
+      retail_price: Number(retailPrice) || 1,
+      rental_price_4_days: Number(rentalPrice4Days) || 1,
+      rental_price_8_days: Number(rentalPrice8Days) || 1,
+      advance_amount: Number(advanceAmount) || 0,
       images: allImages,
       primary_image: primary,
-      description: description || 'Luxury designer dress for special occasions.',
-      fabric: fabric || 'Silk & Embroidery',
-      work_type: workType || 'Hand Crafted',
-      sizes: sizes || ['S', 'M', 'L'],
-      colors: colors || ['Red'],
+      description: description || 'Designer fashion dress',
+      fabric: fabric || 'Premium Fabric',
+      work_type: workType || 'Handcraft',
+      sizes: Array.isArray(sizes) ? sizes : ['S', 'M', 'L'],
+      colors: Array.isArray(colors) ? colors : ['Multi'],
       rating: 5.0,
       review_count: 1,
-      occasion: occasion || 'Wedding Day',
+      occasion: occasion || 'Special Occasion',
       is_available: isAvailable !== undefined ? isAvailable : true,
-      is_hidden: isHidden !== undefined ? isHidden : false,
-      is_trending: isTrending !== undefined ? isTrending : false,
-      is_new_arrival: isNewArrival !== undefined ? isNewArrival : false,
-      show_on_homepage: showOnHomepage !== undefined ? showOnHomepage : true,
+      is_hidden: isHidden === true,
+      is_trending: isTrending === true,
+      is_new_arrival: isNewArrival === true,
+      show_on_homepage: showOnHomepage !== false,
       display_order: Number(displayOrder) || 0
     };
 
@@ -155,7 +156,7 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
 
     if (error) {
       console.error('Error creating dress in Supabase:', error);
-      return res.status(500).json({ error: 'Failed to create dress in database' });
+      return res.status(500).json({ error: `Database error: ${error.message || 'Failed to create dress'}` });
     }
 
     res.status(201).json({ message: 'Dress created successfully', dress: mapDressFromDb(data) });
@@ -171,50 +172,77 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
     const { id } = req.params;
     const body = req.body;
 
-    const updates = {};
-    if (body.name !== undefined) updates.name = body.name;
-    if (body.categoryId !== undefined) updates.category_id = body.categoryId;
-    if (body.categoryName !== undefined) updates.category_name = body.categoryName;
-    if (body.designer !== undefined) updates.designer = body.designer;
-    if (body.retailPrice !== undefined) updates.retail_price = Number(body.retailPrice);
-    if (body.rentalPrice4Days !== undefined) updates.rental_price_4_days = Number(body.rentalPrice4Days);
-    if (body.rentalPrice8Days !== undefined) updates.rental_price_8_days = Number(body.rentalPrice8Days);
-    if (body.advanceAmount !== undefined) updates.advance_amount = Number(body.advanceAmount);
-    if (body.images !== undefined) updates.images = body.images;
-    if (body.primaryImage !== undefined) updates.primary_image = body.primaryImage;
-    if (body.description !== undefined) updates.description = body.description;
-    if (body.fabric !== undefined) updates.fabric = body.fabric;
-    if (body.workType !== undefined) updates.work_type = body.workType;
-    if (body.sizes !== undefined) updates.sizes = body.sizes;
-    if (body.colors !== undefined) updates.colors = body.colors;
-    if (body.occasion !== undefined) updates.occasion = body.occasion;
-    if (body.isAvailable !== undefined) updates.is_available = body.isAvailable;
-    if (body.isHidden !== undefined) updates.is_hidden = body.isHidden;
-    if (body.isTrending !== undefined) updates.is_trending = body.isTrending;
-    if (body.isNewArrival !== undefined) updates.is_new_arrival = body.isNewArrival;
-    if (body.showOnHomepage !== undefined) updates.show_on_homepage = body.showOnHomepage;
-    if (body.displayOrder !== undefined) updates.display_order = Number(body.displayOrder);
+    if (!id) {
+      return res.status(400).json({ error: 'Dress ID is required.' });
+    }
 
-    const { data, error } = await supabase
+    const allImages = Array.isArray(body.images) ? body.images : (body.primaryImage ? [body.primaryImage] : []);
+    const primary = body.primaryImage || allImages[0] || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800';
+    if (allImages.length === 0) allImages.push(primary);
+
+    const updatePayload = {
+      id: String(id),
+      name: body.name ? body.name.trim() : 'Designer Dress',
+      category_id: body.categoryId || 'cat-1',
+      category_name: body.categoryName || 'Photoshoot',
+      designer: body.designer || 'Jai Thuthiksha Couture',
+      retail_price: Number(body.retailPrice) || 1,
+      rental_price_4_days: Number(body.rentalPrice4Days) || 1,
+      rental_price_8_days: Number(body.rentalPrice8Days) || 1,
+      advance_amount: Number(body.advanceAmount) || 0,
+      images: allImages,
+      primary_image: primary,
+      description: body.description || 'Designer fashion dress',
+      fabric: body.fabric || 'Premium Fabric',
+      work_type: body.workType || 'Handcraft',
+      sizes: Array.isArray(body.sizes) ? body.sizes : ['S', 'M', 'L'],
+      colors: Array.isArray(body.colors) ? body.colors : ['Multi'],
+      occasion: body.occasion || 'Special Occasion',
+      is_available: body.isAvailable !== undefined ? body.isAvailable : true,
+      is_hidden: body.isHidden === true,
+      is_trending: body.isTrending === true,
+      is_new_arrival: body.isNewArrival === true,
+      show_on_homepage: body.showOnHomepage !== false,
+      display_order: Number(body.displayOrder) || 0
+    };
+
+    // Try update first
+    const { data: updatedData, error: updateError } = await supabase
       .from('dresses')
-      .update(updates)
+      .update(updatePayload)
       .eq('id', id)
+      .select('*')
+      .maybeSingle();
+
+    if (updateError) {
+      console.error('Error updating dress in Supabase:', updateError);
+      return res.status(500).json({ error: `Database update error: ${updateError.message}` });
+    }
+
+    if (updatedData) {
+      return res.json({ message: 'Dress updated successfully', dress: mapDressFromDb(updatedData) });
+    }
+
+    // If update returned null (row was not found in Supabase), perform upsert
+    const { data: upsertData, error: upsertError } = await supabase
+      .from('dresses')
+      .upsert([updatePayload])
       .select('*')
       .single();
 
-    if (error || !data) {
-      console.error('Error updating dress in Supabase:', error);
-      return res.status(404).json({ error: 'Dress not found or failed to update.' });
+    if (upsertError) {
+      console.error('Error upserting dress in Supabase:', upsertError);
+      return res.status(500).json({ error: `Database upsert error: ${upsertError.message}` });
     }
 
-    res.json({ message: 'Dress updated successfully', dress: mapDressFromDb(data) });
+    res.json({ message: 'Dress updated successfully', dress: mapDressFromDb(upsertData) });
   } catch (err) {
     console.error('PUT /admin/:id dress error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: err.message || 'Internal server error' });
   }
 });
 
-// PATCH /api/dresses/admin/:id/toggle (Admin: Enable/Disable or Hide)
+// PATCH /api/dresses/admin/:id/toggle (Admin: Toggle Status)
 router.patch('/admin/:id/toggle', verifyToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -229,13 +257,14 @@ router.patch('/admin/:id/toggle', verifyToken, requireAdmin, async (req, res) =>
       .update(updates)
       .eq('id', id)
       .select('*')
-      .single();
+      .maybeSingle();
 
-    if (error || !data) {
-      return res.status(404).json({ error: 'Dress not found.' });
+    if (error) {
+      console.error('Error toggling dress status in Supabase:', error);
+      return res.status(500).json({ error: error.message });
     }
 
-    res.json({ message: 'Dress status updated', dress: mapDressFromDb(data) });
+    res.json({ message: 'Dress status updated', dress: mapDressFromDb(data || { id, is_hidden: isHidden }) });
   } catch (err) {
     console.error('PATCH /admin/:id/toggle error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -246,17 +275,21 @@ router.patch('/admin/:id/toggle', verifyToken, requireAdmin, async (req, res) =>
 router.delete('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { data, error } = await supabase
-      .from('dresses')
-      .delete()
-      .eq('id', id)
-      .select('id');
-
-    if (error || !data || data.length === 0) {
-      return res.status(404).json({ error: 'Dress not found.' });
+    if (!id) {
+      return res.status(400).json({ error: 'Dress ID is required.' });
     }
 
-    res.json({ message: 'Dress deleted successfully' });
+    const { error } = await supabase
+      .from('dresses')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting dress from Supabase:', error);
+      return res.status(500).json({ error: `Failed to delete dress: ${error.message}` });
+    }
+
+    res.json({ message: 'Dress deleted successfully', id });
   } catch (err) {
     console.error('DELETE /admin/:id error:', err);
     res.status(500).json({ error: 'Internal server error' });
