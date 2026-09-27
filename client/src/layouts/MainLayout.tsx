@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Navbar } from '../components/Navbar';
-import { AppointmentModal } from '../components/AppointmentModal';
 import { QuickViewModal } from '../components/QuickViewModal';
 import type { CategoryOffer, Product } from '../types/fashion';
 import { api } from '../services/api';
 
 export interface MainLayoutContextType {
   onQuickView: (product: Product) => void;
-  onOpenAppointment: () => void;
   offers: CategoryOffer[];
   refreshOffers: () => void;
   settings: any;
@@ -16,7 +13,6 @@ export interface MainLayoutContextType {
 }
 
 export const MainLayout: React.FC = () => {
-  const [isAppointmentOpen, setIsAppointmentOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [offers, setOffers] = useState<CategoryOffer[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -51,17 +47,10 @@ export const MainLayout: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-[#fffcf8] text-gray-900 font-sans">
       
-      {/* Navigation Header */}
-      <Navbar
-        onOpenAppointment={() => setIsAppointmentOpen(true)}
-        settings={settings}
-      />
-
-      {/* Main Page Outlet */}
+      {/* Main Page Content (Direct Catalogue) */}
       <main className="flex-1">
         <Outlet context={{
           onQuickView: (product: Product) => setQuickViewProduct(product),
-          onOpenAppointment: () => setIsAppointmentOpen(true),
           offers,
           refreshOffers: fetchOffers,
           settings,
@@ -69,14 +58,7 @@ export const MainLayout: React.FC = () => {
         }} />
       </main>
 
-      {/* Trial Appointment Booking Modal */}
-      <AppointmentModal
-        isOpen={isAppointmentOpen}
-        onClose={() => setIsAppointmentOpen(false)}
-        settings={settings}
-      />
-
-      {/* Quick View Outfit Modal */}
+      {/* Quick View Dress Lightbox Modal */}
       <QuickViewModal
         product={quickViewProduct}
         onClose={() => setQuickViewProduct(null)}
