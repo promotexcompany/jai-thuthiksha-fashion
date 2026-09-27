@@ -21,9 +21,32 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Enable CORS for frontend client
-const allowedOrigins = process.env.CLIENT_URL ? [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:3000'] : '*';
+const allowedOrigins = [
+  'https://jaithuthikshafashion.online',
+  'https://www.jaithuthikshafashion.online',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5000'
+];
+
+if (process.env.CLIENT_URL) {
+  allowedOrigins.push(process.env.CLIENT_URL);
+}
+
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl, same-origin)
+    if (!origin) return callback(null, true);
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.jaithuthikshafashion.online') ||
+      origin.endsWith('.vercel.app') ||
+      process.env.NODE_ENV !== 'production'
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -33,21 +56,39 @@ app.use(express.urlencoded({ extended: true }));
 const publicUploadsDir = path.join(__dirname, '../public/uploads');
 app.use('/uploads', express.static(publicUploadsDir));
 
-// API Routes
+// API Routes (Mounted on /api and root fallback for serverless path rewrites)
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
+
 app.use('/api/dresses', dressRoutes);
+app.use('/dresses', dressRoutes);
+
 app.use('/api/categories', categoryRoutes);
+app.use('/categories', categoryRoutes);
+
 app.use('/api/filters', filterRoutes);
+app.use('/filters', filterRoutes);
+
 app.use('/api/bookings', bookingRoutes);
+app.use('/bookings', bookingRoutes);
+
 app.use('/api/settings', settingsRoutes);
+app.use('/settings', settingsRoutes);
+
 app.use('/api/contact', contactRoutes);
+app.use('/contact', contactRoutes);
+
 app.use('/api/offers', offersRoutes);
+app.use('/offers', offersRoutes);
+
 app.use('/api', uploadRoutes);
 
 // Health Check
-app.get('/api/health', (req, res) => {
+const handleHealth = (req, res) => {
   res.json({ status: 'ok', message: 'Jai Thuthiksha Fashion API Server Operational' });
-});
+};
+app.get('/api/health', handleHealth);
+app.get('/health', handleHealth);
 
 // Start Server
 export default app;
