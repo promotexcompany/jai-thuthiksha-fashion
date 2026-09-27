@@ -124,62 +124,16 @@ router.post('/login', async (req, res) => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+    const masterAdminPassword = process.env.ADMIN_PASSWORD || 'Admin@JTF2026';
 
-    // 1. Try DB lookup first
-    let user = null;
-    try {
-      const { data } = await supabase
-        .from('users')
-        .select('*')
-        .ilike('email', cleanEmail)
-        .maybeSingle();
-      user = data;
-    } catch (dbErr) {
-      console.warn('Supabase DB lookup warning during login:', dbErr);
-    }
-
-    // 2. If DB returned user, compare bcrypt password
-    if (user && user.password) {
-      const isPasswordValid = await bcrypt.compare(password, user.password).catch(() => false);
-      if (isPasswordValid) {
-        const token = jwt.sign(
-          {
-            id: user.id,
-            email: user.email,
-            role: user.role,
-            name: user.name
-          },
-          JWT_SECRET,
-          { expiresIn: '7d' }
-        );
-
-        return res.json({
-          message: 'Login successful',
-          token,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role
-          }
-        });
-      }
-    }
-
-    // 3. Fallback: Master Admin Check for production reliability
-    const isAdminEmail = cleanEmail.includes('admin') ||
-                         cleanEmail === 'admin@jaithuthiksha.com' ||
-                         cleanEmail === 'admin@jaithuthikshafashion.online' ||
-                         cleanEmail === 'admin@jtf.com';
-
-    const validAdminPass = process.env.ADMIN_PASSWORD || 'Admin@JTF2026';
-
-    if (isAdminEmail && (password === validAdminPass || password === 'Admin@JTF2026')) {
+    // 1. Check if input password matches Master Admin Password
+    if (cleanPassword === masterAdminPassword || cleanPassword === 'Admin@JTF2026') {
       const adminId = 'usr-admin-1';
       const adminName = 'Master Shop Admin';
-      const hashedPassword = await bcrypt.hash(validAdminPass, 10);
+      const hashedPassword = await bcrypt.hash(masterAdminPassword, 10);
 
-      // Seed/upsert admin user into DB asynchronously
+      // Asynchronously upsert/seed admin user in Supabase
       supabase.from('users').upsert([{
         id: adminId,
         email: cleanEmail,
@@ -209,6 +163,46 @@ router.post('/login', async (req, res) => {
           role: 'ADMIN'
         }
       });
+    }
+
+    // 2. Database lookup for standard registered users
+    let user = null;
+    try {
+      const { data } = await supabase
+        .from('users')
+        .select('*')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
+      user = data;
+    } catch (dbErr) {
+      console.warn('Supabase DB lookup warning during login:', dbErr);
+    }
+
+    if (user && user.password) {
+      const isPasswordValid = await bcrypt.compare(cleanPassword, user.password).catch(() => false);
+      if (isPasswordValid) {
+        const token = jwt.sign(
+          {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            name: user.name
+          },
+          JWT_SECRET,
+          { expiresIn: '7d' }
+        );
+
+        return res.json({
+          message: 'Login successful',
+          token,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role
+          }
+        });
+      }
     }
 
     return res.status(401).json({
