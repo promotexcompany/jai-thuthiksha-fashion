@@ -28,7 +28,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const navLinks = [
-    { name: 'Home', path: '/' },
     { name: 'Photoshoot', path: '/catalogue?cat=photoshoot' },
     { name: 'Reception', path: '/catalogue?cat=reception' },
     { name: 'Bridesmaid', path: '/catalogue?cat=bridesmaid' },
@@ -107,23 +106,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Action Buttons */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 sm:space-x-4">
             <a
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full gradient-vibrant-btn text-xs font-bold"
+              className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full gradient-vibrant-btn text-xs font-bold shadow-md hover:shadow-pink-500/25 transition duration-300"
             >
               <PhoneCall className="w-3.5 h-3.5" />
               <span>Contact on WhatsApp</span>
             </a>
-
-            <Link
-              to="/admin"
-              className="text-xs font-bold text-slate-300 hover:text-white px-3.5 py-2 rounded-xl glass-pill hover:border-pink-500/40 transition duration-300"
-            >
-              Admin Portal
-            </Link>
 
             {/* Mobile menu button */}
             <button
