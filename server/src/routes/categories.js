@@ -1,21 +1,23 @@
 import express from 'express';
 import { supabase } from '../config/supabase.js';
 import { verifyToken, requireAdmin } from '../middleware/auth.js';
+import { readDb, writeDb } from '../db.js';
 
 const router = express.Router();
 
 export const mapCategoryFromDb = (c) => {
   if (!c) return null;
+  const dispOrder = Number(c.display_order ?? c.displayOrder ?? c.order ?? 0);
   return {
     id: String(c.id),
     name: c.name || 'Category',
     slug: c.slug || String(c.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
     tagline: c.tagline || 'Exclusive Luxury Collection',
     enabled: c.enabled !== false,
-    order: Number(c.display_order) || 0,
-    displayOrder: Number(c.display_order) || 0,
+    order: dispOrder,
+    displayOrder: dispOrder,
     image: c.image || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800',
-    createdAt: c.created_at
+    createdAt: c.created_at || c.createdAt || new Date().toISOString()
   };
 };
 
@@ -26,19 +28,26 @@ router.get('/', async (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    const { data: categories, error } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('enabled', true)
-      .order('display_order', { ascending: true });
+    // Try Supabase first
+    try {
+      const { data: categories, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('enabled', true)
+        .order('display_order', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching categories from Supabase:', error);
-      return res.status(500).json({ error: 'Database error fetching categories.' });
-    }
+      if (!error && categories && categories.length > 0) {
+        return res.json(categories.map(mapCategoryFromDb));
+      }
+    } catch (sbErr) {}
 
-    const formatted = (categories || []).map(mapCategoryFromDb);
-    res.json(formatted);
+    // File DB fallback
+    const db = readDb();
+    const categories = (db.categories || [])
+      .filter((c) => c.enabled !== false)
+      .map(mapCategoryFromDb);
+
+    res.json(categories);
   } catch (err) {
     console.error('GET /categories error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -48,18 +57,20 @@ router.get('/', async (req, res) => {
 // GET /api/categories/admin/all (Admin: All Categories)
 router.get('/admin/all', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const { data: categories, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('display_order', { ascending: true });
+    try {
+      const { data: categories, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('display_order', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching admin categories from Supabase:', error);
-      return res.status(500).json({ error: 'Database error fetching categories.' });
-    }
+      if (!error && categories && categories.length > 0) {
+        return res.json(categories.map(mapCategoryFromDb));
+      }
+    } catch (sbErr) {}
 
-    const formatted = (categories || []).map(mapCategoryFromDb);
-    res.json(formatted);
+    const db = readDb();
+    const categories = (db.categories || []).map(mapCategoryFromDb);
+    res.json(categories);
   } catch (err) {
     console.error('GET /admin/categories error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -84,22 +95,30 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
       slug,
       tagline: tagline ? tagline.trim() : 'Exclusive Luxury Collection',
       enabled: true,
-      display_order: Number(order) || 1,
+      order: Number(order) || 1,
       image: image || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800'
     };
 
-    const { data, error } = await supabase
-      .from('categories')
-      .insert([newCat])
-      .select('*')
-      .single();
+    // Save to File DB
+    const db = readDb();
+    if (!db.categories) db.categories = [];
+    db.categories.push(newCat);
+    writeDb(db);
 
-    if (error) {
-      console.error('Error creating category in Supabase:', error);
-      return res.status(500).json({ error: `Failed to create category: ${error.message}` });
-    }
+    // Sync to Supabase if available
+    try {
+      await supabase.from('categories').insert([{
+        id: catId,
+        name: cleanName,
+        slug,
+        tagline: newCat.tagline,
+        enabled: true,
+        display_order: newCat.order,
+        image: newCat.image
+      }]);
+    } catch (e) {}
 
-    res.status(201).json({ message: 'Category created successfully', category: mapCategoryFromDb(data) });
+    res.status(201).json({ message: 'Category created successfully', category: mapCategoryFromDb(newCat) });
   } catch (err) {
     console.error('POST /admin/categories error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -118,6 +137,7 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
 
     const name = body.name ? body.name.trim() : 'Category';
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const orderVal = Number(body.order ?? body.displayOrder ?? 1);
 
     const updatePayload = {
       id: String(id),
@@ -125,40 +145,35 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
       slug,
       tagline: body.tagline ? body.tagline.trim() : 'Exclusive Luxury Collection',
       image: body.image || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800',
-      display_order: Number(body.order ?? body.displayOrder ?? 1),
+      order: orderVal,
       enabled: body.enabled !== false
     };
 
-    // Update or upsert if row is missing in DB
-    const { data: updatedData, error: updateError } = await supabase
-      .from('categories')
-      .update(updatePayload)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-
-    if (updateError) {
-      console.error('Error updating category in Supabase:', updateError);
-      return res.status(500).json({ error: updateError.message });
+    // Update File DB
+    const db = readDb();
+    if (!db.categories) db.categories = [];
+    const idx = db.categories.findIndex(c => c.id === id);
+    if (idx !== -1) {
+      db.categories[idx] = { ...db.categories[idx], ...updatePayload };
+    } else {
+      db.categories.push(updatePayload);
     }
+    writeDb(db);
 
-    if (updatedData) {
-      return res.json({ message: 'Category updated successfully', category: mapCategoryFromDb(updatedData) });
-    }
+    // Sync to Supabase if available
+    try {
+      await supabase.from('categories').upsert([{
+        id: String(id),
+        name,
+        slug,
+        tagline: updatePayload.tagline,
+        image: updatePayload.image,
+        display_order: orderVal,
+        enabled: updatePayload.enabled
+      }]);
+    } catch (e) {}
 
-    // Upsert fallback
-    const { data: upsertData, error: upsertError } = await supabase
-      .from('categories')
-      .upsert([updatePayload])
-      .select('*')
-      .single();
-
-    if (upsertError) {
-      console.error('Error upserting category in Supabase:', upsertError);
-      return res.status(500).json({ error: upsertError.message });
-    }
-
-    res.json({ message: 'Category updated successfully', category: mapCategoryFromDb(upsertData) });
+    res.json({ message: 'Category updated successfully', category: mapCategoryFromDb(updatePayload) });
   } catch (err) {
     console.error('PUT /admin/categories/:id error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -173,20 +188,12 @@ router.delete('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Category ID is required.' });
     }
 
-    // 1. Fetch category details to get category name
-    const { data: cat } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+    const db = readDb();
+    const dresses = db.dresses || [];
 
-    const catName = cat ? cat.name : '';
-
-    // 2. Check if dresses are currently assigned to this category
-    let dressesQuery = supabase.from('dresses').select('id, name').eq('category_id', id);
-    const { data: assignedDresses } = await dressesQuery;
-
-    if (assignedDresses && assignedDresses.length > 0) {
+    // Check if dresses are currently assigned to this category
+    const assignedDresses = dresses.filter(d => d.categoryId === id || d.category_id === id);
+    if (assignedDresses.length > 0) {
       const dressNames = assignedDresses.slice(0, 3).map(d => `"${d.name}"`).join(', ');
       const extraCount = assignedDresses.length > 3 ? ` and ${assignedDresses.length - 3} more` : '';
       return res.status(400).json({
@@ -194,16 +201,14 @@ router.delete('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
       });
     }
 
-    // 3. Delete category from Supabase
-    const { error: deleteError } = await supabase
-      .from('categories')
-      .delete()
-      .eq('id', id);
+    // Delete from File DB
+    db.categories = (db.categories || []).filter(c => c.id !== id);
+    writeDb(db);
 
-    if (deleteError) {
-      console.error('Error deleting category from Supabase:', deleteError);
-      return res.status(500).json({ error: `Failed to delete category: ${deleteError.message}` });
-    }
+    // Sync to Supabase
+    try {
+      await supabase.from('categories').delete().eq('id', id);
+    } catch (e) {}
 
     res.json({ message: 'Category deleted successfully', id });
   } catch (err) {

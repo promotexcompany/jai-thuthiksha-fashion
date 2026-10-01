@@ -65,7 +65,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           localStorage.removeItem(TOKEN_KEY);
           localStorage.removeItem(USER_KEY);
         }
-      } catch (err) {
+      } catch (_err) {
         // Fallback to cached valid session if offline
         const saved = localStorage.getItem(USER_KEY);
         if (saved) {
@@ -128,6 +128,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 };
 
+// Custom hook to access admin authentication
 export const useAdminAuth = () => {
   const context = useContext(AdminAuthContext);
   if (!context) {

@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 
 import { supabase } from '../config/supabase.js';
 import { verifyToken, JWT_SECRET } from '../middleware/auth.js';
+import { readDb, writeDb } from '../db.js';
 
 const router = express.Router();
 
@@ -36,68 +37,72 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Check whether user already exists
-    const { data: existingUser, error: checkError } = await supabase
-      .from('users')
-      .select('id, email')
-      .ilike('email', cleanEmail)
-      .maybeSingle();
-
-    if (checkError) {
-      console.error('Register check error:', checkError);
-      return res.status(500).json({
-        error: 'Database error while verifying email.'
-      });
-    }
-
-    if (existingUser) {
+    // Check whether user already exists in File DB or Supabase
+    const db = readDb();
+    const existingInFile = (db.users || []).find(u => u.email.toLowerCase() === cleanEmail);
+    if (existingInFile) {
       return res.status(409).json({
         error: 'An account with this email address already exists.'
       });
     }
 
+    try {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id, email')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
+
+      if (existingUser) {
+        return res.status(409).json({
+          error: 'An account with this email address already exists.'
+        });
+      }
+    } catch (e) {}
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = `usr-cust-${Date.now()}`;
 
-    // ALWAYS enforce role = CUSTOMER
     const newUser = {
       id: userId,
       email: cleanEmail,
       name: cleanName,
       password: hashedPassword,
-      role: 'CUSTOMER'
+      role: 'CUSTOMER',
+      createdAt: new Date().toISOString()
     };
 
-    const { data: createdUser, error: insertError } = await supabase
-      .from('users')
-      .insert([newUser])
-      .select('id, email, name, role')
-      .single();
+    // Save to File DB
+    if (!db.users) db.users = [];
+    db.users.push(newUser);
+    writeDb(db);
 
-    if (insertError) {
-      console.error('Register insert error:', insertError);
-      return res.status(500).json({
-        error: 'Unable to create user account. Please try again.'
-      });
-    }
+    // Sync to Supabase if available
+    try {
+      await supabase.from('users').insert([{
+        id: userId,
+        email: cleanEmail,
+        name: cleanName,
+        password: hashedPassword,
+        role: 'CUSTOMER'
+      }]);
+    } catch (e) {}
 
-    // Generate JWT token for immediate auto-login
-    const token = jwt.sign(
-      {
-        id: createdUser.id,
-        email: createdUser.email,
-        name: createdUser.name,
-        role: createdUser.role
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const tokenUser = {
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      role: newUser.role
+    };
+
+    // Generate JWT token
+    const token = jwt.sign(tokenUser, JWT_SECRET, { expiresIn: '7d' });
 
     res.status(201).json({
       message: 'Account created successfully.',
       token,
-      user: createdUser
+      user: tokenUser
     });
 
   } catch (error) {
@@ -131,16 +136,6 @@ router.post('/login', async (req, res) => {
     if (cleanPassword === masterAdminPassword || cleanPassword === 'Admin@JTF2026') {
       const adminId = 'usr-admin-1';
       const adminName = 'Master Shop Admin';
-      const hashedPassword = await bcrypt.hash(masterAdminPassword, 10);
-
-      // Asynchronously upsert/seed admin user in Supabase
-      supabase.from('users').upsert([{
-        id: adminId,
-        email: cleanEmail,
-        name: adminName,
-        password: hashedPassword,
-        role: 'ADMIN'
-      }]).then(() => {}).catch(() => {});
 
       const token = jwt.sign(
         {
@@ -167,15 +162,18 @@ router.post('/login', async (req, res) => {
 
     // 2. Database lookup for standard registered users
     let user = null;
-    try {
-      const { data } = await supabase
-        .from('users')
-        .select('*')
-        .ilike('email', cleanEmail)
-        .maybeSingle();
-      user = data;
-    } catch (dbErr) {
-      console.warn('Supabase DB lookup warning during login:', dbErr);
+    const db = readDb();
+    user = (db.users || []).find(u => u.email.toLowerCase() === cleanEmail);
+
+    if (!user) {
+      try {
+        const { data } = await supabase
+          .from('users')
+          .select('*')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+        if (data) user = data;
+      } catch (dbErr) {}
     }
 
     if (user && user.password) {

@@ -1,8 +1,20 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { supabase } from '../config/supabase.js';
 import { verifyToken, requireAdmin } from '../middleware/auth.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const UPLOADS_DIR = path.join(__dirname, '../../public/uploads');
+
+// Ensure public/uploads directory exists
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 
 const storage = multer.memoryStorage();
 
@@ -65,7 +77,18 @@ router.post('/admin/upload', verifyToken, requireAdmin, (req, res) => {
           console.warn('Supabase storage bucket upload notice:', storageErr);
         }
 
-        // 2. Fallback to persistent Base64 Data URL if bucket is not created
+        // 2. Save locally to server/public/uploads if Supabase Storage is not set up
+        if (!uploadedUrl) {
+          try {
+            const localFilePath = path.join(UPLOADS_DIR, filename);
+            fs.writeFileSync(localFilePath, file.buffer);
+            uploadedUrl = `/uploads/${filename}`;
+          } catch (fsErr) {
+            console.warn('Local disk file write fallback warning:', fsErr);
+          }
+        }
+
+        // 3. Fallback to Base64 Data URL if disk write failed
         if (!uploadedUrl) {
           const base64Str = file.buffer.toString('base64');
           uploadedUrl = `data:${file.mimetype};base64,${base64Str}`;

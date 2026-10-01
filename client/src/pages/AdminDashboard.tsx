@@ -59,7 +59,7 @@ export const AdminDashboard: React.FC = () => {
   });
 
   // Load backend data efficiently
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     try {
       const [dressesData, catsData] = await Promise.all([
         api.getAllAdminDresses(),
@@ -71,11 +71,11 @@ export const AdminDashboard: React.FC = () => {
     } catch (err: any) {
       console.error('Error fetching admin data:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const notify = (msg: string) => {
     setStatusMessage(msg);

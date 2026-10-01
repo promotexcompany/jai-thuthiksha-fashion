@@ -35,6 +35,16 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
     resetZoom();
   }, [currentIndex, isOpen, resetZoom]);
 
+  const handleNext = useCallback(() => {
+    resetZoom();
+    onSelectImage((currentIndex + 1) % images.length);
+  }, [currentIndex, images.length, onSelectImage, resetZoom]);
+
+  const handlePrev = useCallback(() => {
+    resetZoom();
+    onSelectImage((currentIndex - 1 + images.length) % images.length);
+  }, [currentIndex, images.length, onSelectImage, resetZoom]);
+
   // Handle ESC key to close & Arrow keys for navigation
   useEffect(() => {
     if (!isOpen) return;
@@ -51,21 +61,11 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, images.length, currentIndex]);
+  }, [isOpen, images.length, currentIndex, handleNext, handlePrev, onClose]);
 
   if (!isOpen || !images || images.length === 0) return null;
 
   const currentImage = images[currentIndex] || images[0];
-
-  const handleNext = () => {
-    resetZoom();
-    onSelectImage((currentIndex + 1) % images.length);
-  };
-
-  const handlePrev = () => {
-    resetZoom();
-    onSelectImage((currentIndex - 1 + images.length) % images.length);
-  };
 
   const handleZoomIn = () => {
     setScale((prev) => Math.min(prev + 0.5, 4));

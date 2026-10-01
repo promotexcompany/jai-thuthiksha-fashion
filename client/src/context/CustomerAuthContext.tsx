@@ -46,6 +46,14 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const [loading, setLoading] = useState<boolean>(true);
 
+  const logout = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    setIsAuthenticated(false);
+    setCustomerUser(null);
+    window.dispatchEvent(new Event('jtf-auth-changed'));
+  };
+
   // Validate session with backend API on mount
   useEffect(() => {
     const verifyCustomerSession = async () => {
@@ -109,8 +117,6 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       setCustomerUser(user);
       setIsAuthenticated(true);
-
-      // Dispatch event for legacy listeners if any
       window.dispatchEvent(new Event('jtf-auth-changed'));
 
       return { success: true };
@@ -142,14 +148,6 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         error: err.message || 'Registration failed. Please try again.'
       };
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    setIsAuthenticated(false);
-    setCustomerUser(null);
-    window.dispatchEvent(new Event('jtf-auth-changed'));
   };
 
   return (

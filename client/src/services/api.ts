@@ -19,6 +19,55 @@ const getApiBaseUrl = (): string => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+export const getBackendHost = (): string => {
+  const envUrl = (import.meta as any).env?.VITE_API_BASE_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    return envUrl.trim().replace(/\/api\/?$/, '');
+  }
+
+  if (
+    typeof window !== 'undefined' &&
+    window.location &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+  ) {
+    return '';
+  }
+
+  return 'http://localhost:5000';
+};
+
+export const formatImageUrl = (url?: string | null): string => {
+  if (!url) return '';
+  if (typeof url === 'string' && url.startsWith('/uploads/')) {
+    const host = getBackendHost();
+    return `${host}${url}`;
+  }
+  return url;
+};
+
+export const normalizeDress = (dress: any): any => {
+  if (!dress) return dress;
+  const image = formatImageUrl(dress.image || dress.primaryImage);
+  const primaryImage = formatImageUrl(dress.primaryImage || dress.image);
+  const rawImages = Array.isArray(dress.images) && dress.images.length > 0
+    ? dress.images
+    : (primaryImage ? [primaryImage] : []);
+  const images = rawImages.map(formatImageUrl);
+  const rawGallery = Array.isArray(dress.galleryImages) && dress.galleryImages.length > 0
+    ? dress.galleryImages
+    : images;
+  const galleryImages = rawGallery.map(formatImageUrl);
+
+  return {
+    ...dress,
+    image,
+    primaryImage,
+    images,
+    galleryImages
+  };
+};
+
 const getCustomerToken = () => {
   return localStorage.getItem('jtf_customer_token');
 };
@@ -69,7 +118,7 @@ export const api = {
         body: JSON.stringify({ name, email, password: pass })
       });
     } catch (err) {
-      throw new Error('Backend API server is unreachable. Please check server connection.');
+      throw new Error('Backend API server is unreachable. Please check server connection.', { cause: err });
     }
 
     const data = await res.json().catch(() => ({}));
@@ -86,7 +135,7 @@ export const api = {
         body: JSON.stringify({ email, password: pass })
       });
     } catch (err) {
-      throw new Error('Backend API server is unreachable. Please check server connection.');
+      throw new Error('Backend API server is unreachable. Please check server connection.', { cause: err });
     }
 
     const data = await res.json().catch(() => ({}));
@@ -122,7 +171,8 @@ export const api = {
         headers: getNoCacheHeaders()
       });
       if (!res.ok) throw new Error('Failed to fetch dresses');
-      return await res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data.map(normalizeDress) : [];
     } catch (err) {
       console.warn('Backend server unreachable for dresses', err);
       return null;
@@ -136,7 +186,7 @@ export const api = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to fetch admin dresses');
-    return data;
+    return Array.isArray(data) ? data.map(normalizeDress) : data;
   },
 
   async addDress(dressData: any) {
@@ -147,6 +197,7 @@ export const api = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to add dress');
+    if (data.dress) data.dress = normalizeDress(data.dress);
     return data;
   },
 
@@ -158,6 +209,7 @@ export const api = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to update dress');
+    if (data.dress) data.dress = normalizeDress(data.dress);
     return data;
   },
 
@@ -169,6 +221,7 @@ export const api = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to toggle dress status');
+    if (data.dress) data.dress = normalizeDress(data.dress);
     return data;
   },
 

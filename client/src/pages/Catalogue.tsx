@@ -4,6 +4,8 @@ import { PRODUCTS, CATEGORIES } from '../services/data';
 import { api } from '../services/api';
 import type { Product, Category } from '../types/fashion';
 import type { MainLayoutContextType } from '../layouts/MainLayout';
+import { HeroSection } from '../components/HeroSection';
+import { Sparkles, Eye, Image as ImageIcon, Sparkle } from 'lucide-react';
 
 export const Catalogue: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,12 +17,20 @@ export const Catalogue: React.FC = () => {
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [categoriesList, setCategoriesList] = useState<Category[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string>(selectedCatParam);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
+
+  // Sync state if URL search param changes
+  useEffect(() => {
+    setCategoryFilter(selectedCatParam);
+  }, [selectedCatParam]);
 
   // Load live data from API
   useEffect(() => {
     let isMounted = true;
     const loadLiveData = async () => {
       try {
+        setIsLoading(true);
         const [liveDresses, liveCats] = await Promise.all([
           api.getPublicDresses(),
           api.getPublicCategories()
@@ -42,6 +52,8 @@ export const Catalogue: React.FC = () => {
           setProductsList(PRODUCTS);
           setCategoriesList(CATEGORIES);
         }
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
     loadLiveData();
@@ -91,30 +103,40 @@ export const Catalogue: React.FC = () => {
     setSearchParams(searchParams);
   };
 
+  const handleImageError = (productId: string) => {
+    setBrokenImages((prev) => ({ ...prev, [productId]: true }));
+  };
+
   return (
-    <div className="bg-[#fffcf8] min-h-screen py-4 sm:py-6">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
+    <div className="min-h-screen pb-16">
+      
+      {/* Show Hero Header when on 'All' Category view */}
+      {categoryFilter === 'all' && (
+        <HeroSection />
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 pt-6">
         
-        {/* Compact Category Selector Bar */}
-        <div className="flex justify-center items-center gap-1.5 sm:gap-2 flex-wrap bg-white p-1.5 sm:p-2 rounded-2xl border border-pink-100 shadow-sm max-w-xl mx-auto sticky top-2 z-30 backdrop-blur-md">
+        {/* Floating Category Filter Pill Bar */}
+        <div className="flex justify-center items-center gap-2 flex-wrap bg-[#0c0b18]/90 p-2 rounded-full border border-white/10 shadow-2xl max-w-2xl mx-auto sticky top-24 z-30 backdrop-blur-xl">
           <button
             onClick={() => handleCategorySelect('all')}
-            className={`px-3.5 py-1.5 sm:px-5 sm:py-2 rounded-xl text-xs font-bold transition ${
+            className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 cursor-pointer ${
               categoryFilter === 'all'
-                ? 'gradient-btn text-white shadow-md'
-                : 'text-gray-700 hover:text-pink-700 hover:bg-pink-50'
+                ? 'gradient-vibrant-btn text-white scale-105'
+                : 'text-slate-300 hover:text-white hover:bg-white/10'
             }`}
           >
-            All
+            All Outfits
           </button>
           {categoriesList.map((cat) => (
             <button
               key={cat.id}
               onClick={() => handleCategorySelect(cat.id)}
-              className={`px-3.5 py-1.5 sm:px-5 sm:py-2 rounded-xl text-xs font-bold transition ${
+              className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 cursor-pointer ${
                 categoryFilter === cat.id
-                  ? 'gradient-btn text-white shadow-md'
-                  : 'text-gray-700 hover:text-pink-700 hover:bg-pink-50'
+                  ? 'gradient-vibrant-btn text-white scale-105'
+                  : 'text-slate-300 hover:text-white hover:bg-white/10'
               }`}
             >
               {cat.name}
@@ -122,54 +144,119 @@ export const Catalogue: React.FC = () => {
           ))}
         </div>
 
-        {/* Dress Feed Grid */}
-        {filteredProducts.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center border border-pink-100 space-y-4 max-w-md mx-auto my-12">
-            <h3 className="text-lg font-bold text-gray-800 font-serif">No Dresses Found</h3>
-            <p className="text-xs text-gray-500">
-              No outfits available in this category yet.
+        {/* Dress Feed Section Header */}
+        <div className="flex items-center justify-between pt-2">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold font-serif text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-400" />
+              <span>
+                {categoryFilter === 'all'
+                  ? 'Featured Catalogue Outfits'
+                  : `${categoriesList.find(c => c.id === categoryFilter || c.slug === categoryFilter)?.name || categoryFilter} Outfits`}
+              </span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Showing {filteredProducts.length} designer dresses available for rental & inquiry
+            </p>
+          </div>
+        </div>
+
+        {/* Loading Skeleton View */}
+        {isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <div key={n} className="glass-dark-card rounded-3xl overflow-hidden aspect-[3/4] shimmer-skeleton" />
+            ))}
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          /* Empty State View */
+          <div className="glass-dark rounded-3xl p-10 sm:p-14 text-center border border-white/10 space-y-4 max-w-md mx-auto my-12 shadow-2xl">
+            <div className="w-16 h-16 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-400 flex items-center justify-center mx-auto">
+              <Sparkle className="w-8 h-8 animate-pulse" />
+            </div>
+            <h3 className="text-xl font-bold text-white font-serif">No Outfits Found</h3>
+            <p className="text-xs sm:text-sm text-slate-400">
+              No outfits available in this category currently. Explore our other collections!
             </p>
             <button
               onClick={() => handleCategorySelect('all')}
-              className="px-6 py-2 rounded-full gradient-btn text-white text-xs font-bold shadow-md"
+              className="px-6 py-2.5 rounded-full gradient-vibrant-btn text-xs font-bold shadow-lg cursor-pointer"
             >
               Show All Outfits
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+          /* Dress Cards Feed Grid */
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {filteredProducts.map((product) => {
               const galleryCount = (product.galleryImages?.length || product.images?.length || 1);
+              const mainImgSrc = product.primaryImage || product.image;
+              const isImgBroken = brokenImages[product.id];
+              const displayPrice = (product as any).price || product.rentalPrice4Days || product.retailPrice;
+
               return (
                 <div
                   key={product.id}
                   onClick={() => onQuickView && onQuickView(product)}
-                  className="bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-pink-100 shadow-sm hover:shadow-xl transition duration-300 flex flex-col group cursor-pointer"
+                  className="glass-dark-card rounded-2xl sm:rounded-3xl overflow-hidden border border-white/10 hover:border-pink-500/40 shadow-xl hover:shadow-[0_15px_35px_rgba(236,72,153,0.25)] transition duration-300 flex flex-col group cursor-pointer relative"
                 >
-                  <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
-                    <img
-                      src={product.primaryImage || product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                    />
+                  {/* Image Container with Consistent Aspect Ratio */}
+                  <div className="relative aspect-[3/4] overflow-hidden bg-[#0a0914] flex items-center justify-center">
+                    {!isImgBroken && mainImgSrc ? (
+                      <img
+                        src={mainImgSrc}
+                        alt={product.name}
+                        onError={() => handleImageError(product.id)}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#121024] to-[#090814] text-slate-400 p-4 text-center">
+                        <ImageIcon className="w-10 h-10 text-pink-400/60 mb-2" />
+                        <span className="text-xs font-serif text-slate-300">{product.name}</span>
+                        <span className="text-[10px] text-pink-400/80 mt-1">Boutique Outfit</span>
+                      </div>
+                    )}
+
+                    {/* Gradient Overlay for Text Readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#07060f]/90 via-transparent to-black/30 opacity-80 group-hover:opacity-60 transition" />
 
                     {/* Category Label */}
-                    <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-slate-900/90 text-amber-300 text-[10px] sm:text-xs font-bold px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-slate-700 backdrop-blur-sm shadow-md">
+                    <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 bg-black/80 text-amber-300 text-[10px] sm:text-xs font-bold px-2.5 py-1 sm:px-3 sm:py-1 rounded-full border border-amber-500/30 backdrop-blur-md shadow-md">
                       {product.categoryLabel || product.category}
                     </div>
 
                     {/* Gallery Views Counter Badge */}
                     {galleryCount > 1 && (
-                      <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-pink-700/90 text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm">
+                      <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 bg-pink-600/90 text-white text-[9px] sm:text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-pink-400/30 backdrop-blur-md shadow-sm">
                         {galleryCount} Photos
                       </div>
                     )}
+
+                    {/* Quick View Hover Indicator Badge */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none">
+                      <div className="bg-black/80 backdrop-blur-md text-white text-xs font-bold px-4 py-2 rounded-full border border-pink-500/40 shadow-xl flex items-center gap-2 transform translate-y-2 group-hover:translate-y-0 transition">
+                        <Eye className="w-4 h-4 text-pink-400" />
+                        <span>Quick View</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="p-2.5 sm:p-4 bg-white flex-1 flex flex-col justify-center">
-                    <h3 className="font-bold text-gray-900 text-xs sm:text-sm font-serif line-clamp-1 group-hover:text-pink-700 transition">
+                  {/* Card Info Content */}
+                  <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between bg-gradient-to-b from-[#0c0b1a]/60 to-[#07060f]/90 border-t border-white/5 space-y-1.5">
+                    <h3 className="font-bold text-white text-xs sm:text-sm font-serif line-clamp-1 group-hover:text-pink-300 transition">
                       {product.name}
                     </h3>
+
+                    {displayPrice ? (
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-xs sm:text-sm font-extrabold gradient-gold-text font-serif">
+                          ₹{Number(displayPrice).toLocaleString('en-IN')}
+                        </span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                          View Details →
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               );

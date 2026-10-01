@@ -1,49 +1,51 @@
 import express from 'express';
 import { supabase } from '../config/supabase.js';
 import { verifyToken, requireAdmin } from '../middleware/auth.js';
+import { readDb, writeDb } from '../db.js';
 
 const router = express.Router();
 
 export const mapBookingFromDb = (b) => {
   if (!b) return null;
   return {
-    id: b.id,
-    customerName: b.customer_name,
-    customerPhone: b.customer_phone,
-    dressId: b.dress_id,
-    dressName: b.dress_name,
-    category: b.category,
-    startDate: b.start_date,
-    returnDate: b.return_date,
-    durationDays: b.duration_days,
-    rentalPrice: Number(b.rental_price) || 0,
+    id: String(b.id),
+    customerName: b.customer_name || b.customerName || 'WhatsApp Customer',
+    customerPhone: b.customer_phone || b.customerPhone || 'Via WhatsApp',
+    dressId: b.dress_id || b.dressId || '',
+    dressName: b.dress_name || b.dressName || 'Designer Dress',
+    category: b.category || 'General',
+    startDate: b.start_date || b.startDate || '',
+    returnDate: b.return_date || b.returnDate || '',
+    durationDays: Number(b.duration_days || b.durationDays) || 4,
+    rentalPrice: Number(b.rental_price || b.rentalPrice) || 0,
     status: b.status || 'Pending',
-    internalNotes: b.internal_notes || '',
-    createdAt: b.created_at
+    internalNotes: b.internal_notes || b.internalNotes || '',
+    createdAt: b.created_at || b.createdAt || new Date().toISOString()
   };
 };
 
 // Helper to check if rental dates overlap
 const checkDateOverlap = async (dressId, newStart, newReturn, ignoreBookingId = null) => {
-  const { data: bookings } = await supabase
-    .from('bookings')
-    .select('id, dress_id, start_date, return_date, status')
-    .eq('dress_id', dressId);
+  try {
+    const db = readDb();
+    const bookings = db.bookings || [];
+    const start = new Date(newStart).getTime();
+    const ret = new Date(newReturn).getTime();
 
-  if (!bookings) return false;
+    return bookings.some(b => {
+      const bDressId = b.dress_id || b.dressId;
+      if (bDressId !== dressId) return false;
+      if (b.id === ignoreBookingId) return false;
+      if (b.status === 'Cancelled' || b.status === 'Returned') return false;
 
-  const start = new Date(newStart).getTime();
-  const ret = new Date(newReturn).getTime();
+      const bStart = new Date(b.start_date || b.startDate).getTime();
+      const bReturn = new Date(b.return_date || b.returnDate).getTime();
 
-  return bookings.some(b => {
-    if (b.id === ignoreBookingId) return false;
-    if (b.status === 'Cancelled' || b.status === 'Returned') return false;
-
-    const bStart = new Date(b.start_date).getTime();
-    const bReturn = new Date(b.return_date).getTime();
-
-    return start <= bReturn && ret >= bStart;
-  });
+      return start <= bReturn && ret >= bStart;
+    });
+  } catch (err) {
+    return false;
+  }
 };
 
 // POST /api/bookings/enquire (Public: Customer Logs WA Enquiry)
@@ -68,37 +70,52 @@ router.post('/enquire', async (req, res) => {
     const bookingId = `bkg-${Date.now()}`;
     const hasOverlap = await checkDateOverlap(dressId, startDate, returnDate);
 
-    const newBooking = {
+    const newBookingRecord = {
       id: bookingId,
-      customer_name: customerName || 'WhatsApp Customer',
-      customer_phone: customerPhone || 'Via WhatsApp',
-      dress_id: dressId,
-      dress_name: dressName || 'Designer Dress',
+      customerName: customerName || 'WhatsApp Customer',
+      customerPhone: customerPhone || 'Via WhatsApp',
+      dressId: dressId,
+      dressName: dressName || 'Designer Dress',
       category: category || 'General',
-      start_date: startDate,
-      return_date: returnDate,
-      duration_days: Number(durationDays) || 4,
-      rental_price: Number(rentalPrice) || 0,
+      startDate: startDate,
+      returnDate: returnDate,
+      durationDays: Number(durationDays) || 4,
+      rentalPrice: Number(rentalPrice) || 0,
       status: 'Pending',
-      internal_notes: hasOverlap
+      internalNotes: hasOverlap
         ? 'WARNING: Date overlap detected with existing booking.'
-        : 'Enquiry initialized via customer booking flow.'
+        : 'Enquiry initialized via customer booking flow.',
+      createdAt: new Date().toISOString()
     };
 
-    const { data, error } = await supabase
-      .from('bookings')
-      .insert([newBooking])
-      .select('*')
-      .single();
+    // 1. File DB persistence
+    const db = readDb();
+    if (!db.bookings) db.bookings = [];
+    db.bookings.unshift(newBookingRecord);
+    writeDb(db);
 
-    if (error) {
-      console.error('Error recording booking enquiry in Supabase:', error);
-      return res.status(500).json({ error: 'Failed to record booking enquiry.' });
-    }
+    // 2. Supabase sync if available
+    try {
+      await supabase.from('bookings').insert([{
+        id: bookingId,
+        customer_name: newBookingRecord.customerName,
+        customer_phone: newBookingRecord.customerPhone,
+        dress_id: newBookingRecord.dressId,
+        dress_name: newBookingRecord.dressName,
+        category: newBookingRecord.category,
+        start_date: newBookingRecord.startDate,
+        return_date: newBookingRecord.returnDate,
+        duration_days: newBookingRecord.durationDays,
+        rental_price: newBookingRecord.rentalPrice,
+        status: 'Pending',
+        internal_notes: newBookingRecord.internalNotes,
+        created_at: newBookingRecord.createdAt
+      }]);
+    } catch (e) {}
 
     res.status(201).json({
       message: 'Booking enquiry recorded successfully',
-      booking: mapBookingFromDb(data),
+      booking: mapBookingFromDb(newBookingRecord),
       dateOverlap: hasOverlap
     });
   } catch (err) {
@@ -110,18 +127,20 @@ router.post('/enquire', async (req, res) => {
 // GET /api/bookings/admin/all (Admin: List & Search All Bookings)
 router.get('/admin/all', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const { data: bookings, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data: bookings, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching admin bookings from Supabase:', error);
-      return res.status(500).json({ error: 'Database error fetching bookings' });
-    }
+      if (!error && bookings && bookings.length > 0) {
+        return res.json(bookings.map(mapBookingFromDb));
+      }
+    } catch (sbErr) {}
 
-    const formatted = (bookings || []).map(mapBookingFromDb);
-    res.json(formatted);
+    const db = readDb();
+    const bookings = (db.bookings || []).map(mapBookingFromDb);
+    res.json(bookings);
   } catch (err) {
     console.error('GET /admin/bookings error:', err);
     res.status(500).json({ error: 'Internal server error.' });
@@ -134,26 +153,36 @@ router.patch('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
     const { id } = req.params;
     const { status, internalNotes, startDate, returnDate, customerName, customerPhone } = req.body;
 
-    const updates = {};
-    if (status !== undefined) updates.status = status;
-    if (internalNotes !== undefined) updates.internal_notes = internalNotes;
-    if (startDate !== undefined) updates.start_date = startDate;
-    if (returnDate !== undefined) updates.return_date = returnDate;
-    if (customerName !== undefined) updates.customer_name = customerName;
-    if (customerPhone !== undefined) updates.customer_phone = customerPhone;
+    const db = readDb();
+    if (!db.bookings) db.bookings = [];
+    const idx = db.bookings.findIndex(b => b.id === id);
 
-    const { data, error } = await supabase
-      .from('bookings')
-      .update(updates)
-      .eq('id', id)
-      .select('*')
-      .single();
-
-    if (error || !data) {
+    if (idx === -1) {
       return res.status(404).json({ error: 'Booking not found.' });
     }
 
-    res.json({ message: 'Booking updated successfully', booking: mapBookingFromDb(data) });
+    if (status !== undefined) db.bookings[idx].status = status;
+    if (internalNotes !== undefined) db.bookings[idx].internalNotes = internalNotes;
+    if (startDate !== undefined) db.bookings[idx].startDate = startDate;
+    if (returnDate !== undefined) db.bookings[idx].returnDate = returnDate;
+    if (customerName !== undefined) db.bookings[idx].customerName = customerName;
+    if (customerPhone !== undefined) db.bookings[idx].customerPhone = customerPhone;
+
+    writeDb(db);
+
+    // Sync to Supabase
+    try {
+      const updates = {};
+      if (status !== undefined) updates.status = status;
+      if (internalNotes !== undefined) updates.internal_notes = internalNotes;
+      if (startDate !== undefined) updates.start_date = startDate;
+      if (returnDate !== undefined) updates.return_date = returnDate;
+      if (customerName !== undefined) updates.customer_name = customerName;
+      if (customerPhone !== undefined) updates.customer_phone = customerPhone;
+      await supabase.from('bookings').update(updates).eq('id', id);
+    } catch (e) {}
+
+    res.json({ message: 'Booking updated successfully', booking: mapBookingFromDb(db.bookings[idx]) });
   } catch (err) {
     console.error('PATCH /admin/bookings/:id error:', err);
     res.status(500).json({ error: 'Internal server error.' });
@@ -164,15 +193,15 @@ router.patch('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
 router.delete('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { data, error } = await supabase
-      .from('bookings')
-      .delete()
-      .eq('id', id)
-      .select('id');
+    const db = readDb();
+    if (!db.bookings) db.bookings = [];
 
-    if (error || !data || data.length === 0) {
-      return res.status(404).json({ error: 'Booking not found.' });
-    }
+    db.bookings = db.bookings.filter(b => b.id !== id);
+    writeDb(db);
+
+    try {
+      await supabase.from('bookings').delete().eq('id', id);
+    } catch (e) {}
 
     res.json({ message: 'Booking deleted successfully' });
   } catch (err) {

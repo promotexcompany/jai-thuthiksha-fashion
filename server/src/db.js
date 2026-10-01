@@ -50,8 +50,8 @@ const getInitialData = () => {
       {
         id: 'jtf-001',
         name: 'Maharani Velvet Crimson Bridal Lehenga',
-        categoryId: 'cat-1',
-        categoryName: 'Bride Dresses',
+        categoryId: 'cat-photoshoot',
+        categoryName: 'Photoshoot',
         designer: 'Jai Thuthiksha Couture',
         retailPrice: 85000,
         rentalPrice4Days: 5999,
@@ -69,7 +69,7 @@ const getInitialData = () => {
         colors: ['Crimson Red', 'Royal Maroon'],
         rating: 4.9,
         reviewCount: 38,
-        occasion: 'Wedding Day',
+        occasion: 'Photoshoot',
         isAvailable: true,
         isHidden: false,
         createdAt: new Date().toISOString()
@@ -77,8 +77,8 @@ const getInitialData = () => {
       {
         id: 'jtf-002',
         name: 'Pure Temple Gold Kanjeevaram Silk Saree',
-        categoryId: 'cat-2',
-        categoryName: 'Silk Sarees',
+        categoryId: 'cat-reception',
+        categoryName: 'Reception',
         designer: 'Kanchipuram Craftsmen',
         retailPrice: 42000,
         rentalPrice4Days: 2999,
@@ -103,8 +103,8 @@ const getInitialData = () => {
       {
         id: 'jtf-003',
         name: 'Emerald Glitter Embroidered Indo-Western Gown',
-        categoryId: 'cat-6',
-        categoryName: 'Party Wear',
+        categoryId: 'cat-bridesmaid',
+        categoryName: 'Bridesmaid',
         designer: 'JTF Modern Atelier',
         retailPrice: 38000,
         rentalPrice4Days: 2499,
@@ -121,7 +121,7 @@ const getInitialData = () => {
         colors: ['Emerald Green'],
         rating: 4.9,
         reviewCount: 22,
-        occasion: 'Sangeet / Cocktails',
+        occasion: 'Bridesmaid',
         isAvailable: true,
         isHidden: false,
         createdAt: new Date().toISOString()

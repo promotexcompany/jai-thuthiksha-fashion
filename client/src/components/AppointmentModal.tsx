@@ -26,7 +26,7 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onCl
   const shopAddress = settings?.shopAddress || SHOP_CONFIG.SHOP_ADDRESS;
   const phoneDisplay = settings?.phoneDisplay || SHOP_CONFIG.SHOP_PHONE_DISPLAY;
   const trialTitle = settings?.trialTitle || 'Boutique Trial & Fitting Session';
-  const trialDescription = settings?.trialDescription || 'Visit Jai Thuthiksha Fashion for personalized styling & bridal trial fitting.';
+  const trialDescription = settings?.trialDescription || 'Visit Jai Thuthiksha Fashion for personalized styling & trial fitting.';
   const availabilityInfo = settings?.trialAvailabilityInfo || 'Monday - Saturday: 10:00 AM - 8:30 PM';
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -40,49 +40,49 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onCl
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-      <div className="relative bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-pink-100 max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/90 backdrop-blur-2xl flex items-center justify-center p-2 sm:p-4">
+      <div className="relative bg-[#0e0c1e] text-slate-100 rounded-3xl max-w-lg w-full shadow-[0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden border border-white/15 max-h-[92vh] overflow-y-auto">
         
         {/* Header */}
-        <div className="p-6 bg-gradient-to-r from-pink-900 via-rose-800 to-amber-900 text-white relative">
+        <div className="p-6 bg-gradient-to-r from-pink-950/90 via-rose-950/90 to-purple-950/90 text-white relative border-b border-white/10">
           <button
             onClick={handleReset}
-            className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-white transition"
+            className="absolute top-4 right-4 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition backdrop-blur-md cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2 text-amber-300 text-xs font-semibold uppercase tracking-wider mb-1">
-            <Sparkles className="w-4 h-4" />
+          <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-1">
+            <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
             {trialTitle}
           </div>
-          <h3 className="text-2xl font-bold font-serif">Book In-Person Trial</h3>
-          <p className="text-xs text-pink-100 mt-1">
+          <h3 className="text-2xl font-bold font-serif gradient-text">Book Fitting Session</h3>
+          <p className="text-xs text-slate-300 mt-1">
             {trialDescription}
           </p>
         </div>
 
         {submitted ? (
           <div className="p-8 text-center space-y-4">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-16 h-16 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
               <CheckCircle className="w-10 h-10" />
             </div>
-            <h4 className="text-xl font-bold text-gray-900">Appointment Confirmed!</h4>
-            <p className="text-sm text-gray-600">
-              Thank you, <span className="font-semibold text-pink-700">{formData.name}</span>. Our master stylist has reserved your slot on{' '}
-              <span className="font-semibold text-gray-900">{formData.date || 'your selected date'}</span> ({formData.timeSlot}).
+            <h4 className="text-xl font-bold text-white font-serif">Appointment Confirmed!</h4>
+            <p className="text-xs sm:text-sm text-slate-300">
+              Thank you, <span className="font-semibold text-pink-400">{formData.name}</span>. Our master stylist has reserved your slot on{' '}
+              <span className="font-semibold text-white">{formData.date || 'your selected date'}</span> ({formData.timeSlot}).
             </p>
-            <div className="bg-pink-50 p-4 rounded-xl text-xs text-pink-900 text-left space-y-1">
-              <p className="font-semibold text-sm mb-2 flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-pink-700" />
+            <div className="glass-pill p-4 rounded-2xl text-xs text-slate-300 text-left space-y-1 border border-white/10">
+              <p className="font-semibold text-sm mb-2 flex items-center gap-1.5 text-white">
+                <MapPin className="w-4 h-4 text-pink-400" />
                 {shopName} Boutique
               </p>
               <p>{shopAddress}</p>
               <p>Phone support: {phoneDisplay}</p>
-              <p className="text-[11px] text-pink-800 font-medium pt-1">Hours: {availabilityInfo}</p>
+              <p className="text-[11px] text-pink-300 font-medium pt-1">Hours: {availabilityInfo}</p>
             </div>
             <button
               onClick={handleReset}
-              className="mt-4 px-8 py-3 bg-pink-700 text-white rounded-xl font-bold hover:bg-pink-800 transition"
+              className="mt-4 px-8 py-3 rounded-full gradient-vibrant-btn text-xs font-bold shadow-lg cursor-pointer"
             >
               Done
             </button>
@@ -90,46 +90,46 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onCl
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
               <div className="relative">
-                <User className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Radhika Sharma"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
+                  placeholder="Enter your name"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl glass-pill text-white text-sm focus:border-pink-500/60 outline-none"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Phone Number</label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <input
                     type="tel"
                     required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="Enter your 10-digit mobile number"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
+                    placeholder="Mobile number"
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl glass-pill text-white text-sm focus:border-pink-500/60 outline-none"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <input
                     type="email"
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="you@example.com"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl glass-pill text-white text-sm focus:border-pink-500/60 outline-none"
                   />
                 </div>
               </div>
@@ -137,32 +137,32 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onCl
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Appointment Date</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Appointment Date</label>
                 <div className="relative">
-                  <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                  <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <input
                     type="date"
                     required
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl glass-pill text-white text-sm focus:border-pink-500/60 outline-none"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Time Slot</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Time Slot</label>
                 <div className="relative">
-                  <Clock className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                  <Clock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                   <select
                     value={formData.timeSlot}
                     onChange={(e) => setFormData({ ...formData, timeSlot: e.target.value })}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl glass-pill text-white bg-[#0e0c1e] text-sm focus:border-pink-500/60 outline-none"
                   >
-                    <option>10:00 AM - 12:00 PM</option>
-                    <option>12:00 PM - 02:00 PM</option>
-                    <option>02:00 PM - 04:00 PM</option>
-                    <option>04:00 PM - 06:00 PM</option>
-                    <option>06:00 PM - 08:00 PM</option>
+                    <option className="bg-[#0e0c1e] text-white">10:00 AM - 12:00 PM</option>
+                    <option className="bg-[#0e0c1e] text-white">12:00 PM - 02:00 PM</option>
+                    <option className="bg-[#0e0c1e] text-white">02:00 PM - 04:00 PM</option>
+                    <option className="bg-[#0e0c1e] text-white">04:00 PM - 06:00 PM</option>
+                    <option className="bg-[#0e0c1e] text-white">06:00 PM - 08:00 PM</option>
                   </select>
                 </div>
               </div>
@@ -170,38 +170,38 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({ isOpen, onCl
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Occasion</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Occasion</label>
                 <select
                   value={formData.occasion}
                   onChange={(e) => setFormData({ ...formData, occasion: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                  className="w-full px-3 py-2.5 rounded-xl glass-pill text-white bg-[#0e0c1e] text-sm focus:border-pink-500/60 outline-none"
                 >
-                  <option>Bridal Wedding</option>
-                  <option>Reception</option>
-                  <option>Sangeet / Mehendi</option>
-                  <option>Festival / Party</option>
-                  <option>Photoshoot</option>
+                  <option className="bg-[#0e0c1e] text-white">Bridal Wedding</option>
+                  <option className="bg-[#0e0c1e] text-white">Reception</option>
+                  <option className="bg-[#0e0c1e] text-white">Sangeet / Mehendi</option>
+                  <option className="bg-[#0e0c1e] text-white">Festival / Party</option>
+                  <option className="bg-[#0e0c1e] text-white">Photoshoot</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Outfit Interest</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Outfit Interest</label>
                 <select
                   value={formData.preferredCategory}
                   onChange={(e) => setFormData({ ...formData, preferredCategory: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                  className="w-full px-3 py-2.5 rounded-xl glass-pill text-white bg-[#0e0c1e] text-sm focus:border-pink-500/60 outline-none"
                 >
-                  <option>Bridal Lehenga</option>
-                  <option>Kanjeevaram Saree</option>
-                  <option>Indo-Western Gown</option>
-                  <option>Mens Sherwani</option>
-                  <option>Jewelry Set</option>
+                  <option className="bg-[#0e0c1e] text-white">Bridal Lehenga</option>
+                  <option className="bg-[#0e0c1e] text-white">Kanjeevaram Saree</option>
+                  <option className="bg-[#0e0c1e] text-white">Indo-Western Gown</option>
+                  <option className="bg-[#0e0c1e] text-white">Mens Sherwani</option>
+                  <option className="bg-[#0e0c1e] text-white">Jewelry Set</option>
                 </select>
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full gradient-btn text-white py-3 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition mt-4"
+              className="w-full gradient-vibrant-btn py-3.5 rounded-xl font-bold text-sm shadow-xl transition mt-4 cursor-pointer"
             >
               Confirm Appointment Request
             </button>

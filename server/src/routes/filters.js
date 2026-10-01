@@ -1,6 +1,7 @@
 import express from 'express';
 import { supabase } from '../config/supabase.js';
 import { verifyToken, requireAdmin } from '../middleware/auth.js';
+import { readDb, writeDb } from '../db.js';
 
 const router = express.Router();
 
@@ -13,23 +14,20 @@ const DEFAULT_FILTERS = {
 // GET /api/filters (Public Filters)
 router.get('/', async (req, res) => {
   try {
-    const { data: dresses, error } = await supabase
-      .from('dresses')
-      .select('sizes, colors, occasion')
-      .eq('is_hidden', false);
+    const db = readDb();
+    const dbFilters = db.filters || DEFAULT_FILTERS;
+    const dresses = db.dresses || [];
 
-    if (error || !dresses) {
-      return res.json(DEFAULT_FILTERS);
-    }
-
-    const sizeSet = new Set(DEFAULT_FILTERS.sizes);
-    const colorSet = new Set(DEFAULT_FILTERS.colors);
-    const occasionSet = new Set(DEFAULT_FILTERS.occasions);
+    const sizeSet = new Set(dbFilters.sizes || DEFAULT_FILTERS.sizes);
+    const colorSet = new Set(dbFilters.colors || DEFAULT_FILTERS.colors);
+    const occasionSet = new Set(dbFilters.occasions || DEFAULT_FILTERS.occasions);
 
     dresses.forEach((d) => {
-      if (Array.isArray(d.sizes)) d.sizes.forEach((s) => sizeSet.add(s));
-      if (Array.isArray(d.colors)) d.colors.forEach((c) => colorSet.add(c));
-      if (d.occasion) occasionSet.add(d.occasion);
+      if (!d.isHidden) {
+        if (Array.isArray(d.sizes)) d.sizes.forEach((s) => sizeSet.add(s));
+        if (Array.isArray(d.colors)) d.colors.forEach((c) => colorSet.add(c));
+        if (d.occasion) occasionSet.add(d.occasion);
+      }
     });
 
     res.json({
@@ -45,12 +43,20 @@ router.get('/', async (req, res) => {
 
 // PUT /api/admin/filters (Admin: Update Filters)
 router.put('/admin/update', verifyToken, requireAdmin, (req, res) => {
-  const { sizes, colors, occasions } = req.body;
-  if (sizes) DEFAULT_FILTERS.sizes = sizes;
-  if (colors) DEFAULT_FILTERS.colors = colors;
-  if (occasions) DEFAULT_FILTERS.occasions = occasions;
+  try {
+    const { sizes, colors, occasions } = req.body;
+    const db = readDb();
+    if (!db.filters) db.filters = { ...DEFAULT_FILTERS };
 
-  res.json({ message: 'Filter options updated successfully', filters: DEFAULT_FILTERS });
+    if (sizes) db.filters.sizes = sizes;
+    if (colors) db.filters.colors = colors;
+    if (occasions) db.filters.occasions = occasions;
+
+    writeDb(db);
+    res.json({ message: 'Filter options updated successfully', filters: db.filters });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update filters' });
+  }
 });
 
 export default router;
