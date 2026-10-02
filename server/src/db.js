@@ -196,7 +196,11 @@ const getInitialData = () => {
 export const readDb = () => {
   if (!fs.existsSync(DB_FILE)) {
     const initial = getInitialData();
-    fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2));
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2));
+    } catch (e) {
+      console.warn('File DB seed write warning (ephemeral/read-only filesystem):', e.message);
+    }
     return initial;
   }
   try {
@@ -205,11 +209,19 @@ export const readDb = () => {
   } catch (err) {
     console.error('Error reading database file, re-initializing:', err);
     const initial = getInitialData();
-    fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2));
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2));
+    } catch (e) {
+      console.warn('File DB fallback write warning:', e.message);
+    }
     return initial;
   }
 };
 
 export const writeDb = (data) => {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.warn('File DB write warning (ephemeral/read-only filesystem):', err.message);
+  }
 };
