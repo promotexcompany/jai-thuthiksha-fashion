@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Calendar, Menu, X, Sparkles, PhoneCall, User } from 'lucide-react';
+import { Calendar, Menu, X, Sparkles, PhoneCall, User, Camera, Crown, Heart } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 import { SHOP_CONFIG } from '../config/shopConfig';
 import { useCustomerAuth } from '../context/CustomerAuthContext';
@@ -28,13 +28,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const navLinks = [
-    { name: 'Photoshoot', path: '/catalogue?cat=photoshoot' },
-    { name: 'Reception', path: '/catalogue?cat=reception' },
-    { name: 'Bridesmaid', path: '/catalogue?cat=bridesmaid' },
+    { name: 'Photoshoot', path: '/catalogue?cat=photoshoot', icon: Camera },
+    { name: 'Reception', path: '/catalogue?cat=reception', icon: Crown },
+    { name: 'Bridesmaid', path: '/catalogue?cat=bridesmaid', icon: Heart },
   ];
 
   const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/';
+    if (path === '/') return location.pathname === '/' && !location.search;
     return location.pathname + location.search === path;
   };
 
@@ -87,22 +87,26 @@ export const Navbar: React.FC<NavbarProps> = ({
           </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center space-x-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`text-sm font-semibold transition-all duration-300 relative py-1 ${isActive(link.path)
-                  ? 'text-pink-400 font-bold'
-                  : 'text-slate-300 hover:text-white'
-                  }`}
-              >
-                {link.name}
-                {isActive(link.path) && (
-                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-pink-500 via-rose-500 to-amber-400 rounded-full shadow-[0_0_10px_rgba(236,72,153,0.8)]" />
-                )}
-              </Link>
-            ))}
+          <nav className="hidden md:flex items-center space-x-7">
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`flex items-center gap-2 text-sm font-semibold transition-all duration-300 relative py-1 ${isActive(link.path)
+                    ? 'text-pink-400 font-bold'
+                    : 'text-slate-300 hover:text-white'
+                    }`}
+                >
+                  <Icon className="w-4 h-4 text-pink-400/80" />
+                  <span>{link.name}</span>
+                  {isActive(link.path) && (
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-pink-500 via-rose-500 to-amber-400 rounded-full shadow-[0_0_10px_rgba(236,72,153,0.8)]" />
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Action Buttons */}
@@ -132,19 +136,23 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Mobile Drawer Navigation */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-[#0d0b1a]/95 backdrop-blur-2xl border-b border-white/10 px-4 pt-3 pb-6 space-y-3 shadow-2xl animate-fadeIn">
-          {navLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              onClick={() => setMobileMenuOpen(false)}
-              className={`block py-2.5 text-base font-medium rounded-xl px-4 transition ${isActive(link.path)
-                ? 'bg-pink-500/20 text-pink-300 font-bold border border-pink-500/40'
-                : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                }`}
-            >
-              {link.name}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const Icon = link.icon;
+            return (
+              <Link
+                key={link.path}
+                to={link.path}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 py-2.5 text-base font-medium rounded-xl px-4 transition ${isActive(link.path)
+                  ? 'bg-pink-500/20 text-pink-300 font-bold border border-pink-500/40'
+                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+              >
+                <Icon className="w-5 h-5 text-pink-400" />
+                <span>{link.name}</span>
+              </Link>
+            );
+          })}
           <div className="pt-3 border-t border-white/10 flex flex-col gap-2.5">
             <button
               onClick={() => {

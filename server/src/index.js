@@ -92,6 +92,7 @@ app.use('/api/offers', offersRoutes);
 app.use('/offers', offersRoutes);
 
 app.use('/api', uploadRoutes);
+app.use('/', uploadRoutes);
 
 // Health Check
 const handleHealth = (req, res) => {

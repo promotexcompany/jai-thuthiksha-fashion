@@ -122,7 +122,7 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!email || !email.trim() || !password || !password.trim()) {
       return res.status(400).json({
         error: 'Email and password are required.'
       });
@@ -132,10 +132,28 @@ router.post('/login', async (req, res) => {
     const cleanPassword = password.trim();
     const masterAdminPassword = process.env.ADMIN_PASSWORD || 'Admin@JTF2026';
 
-    // 1. Check if input password matches Master Admin Password
-    if (cleanPassword === masterAdminPassword || cleanPassword === 'Admin@JTF2026') {
-      const adminId = 'usr-admin-1';
-      const adminName = 'Master Shop Admin';
+    // 1. Look up user in File DB & Supabase first
+    let user = null;
+    const db = readDb();
+    user = (db.users || []).find(u => u.email.toLowerCase() === cleanEmail);
+
+    if (!user) {
+      try {
+        const { data } = await supabase
+          .from('users')
+          .select('*')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+        if (data) user = data;
+      } catch (dbErr) {}
+    }
+
+    // 2. Master Admin Email Check (admin@jaithuthiksha.com or admin@jaithuthikshafashion.online or user with ADMIN role)
+    const isMasterAdminEmail = cleanEmail === 'admin@jaithuthiksha.com' || cleanEmail === 'admin@jaithuthikshafashion.online';
+
+    if (isMasterAdminEmail && (cleanPassword === masterAdminPassword || cleanPassword === 'Admin@JTF2026')) {
+      const adminId = user ? user.id : 'usr-admin-1';
+      const adminName = user ? user.name : 'Master Shop Admin';
 
       const token = jwt.sign(
         {
@@ -160,45 +178,25 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // 2. Database lookup for standard registered users
-    let user = null;
-    const db = readDb();
-    user = (db.users || []).find(u => u.email.toLowerCase() === cleanEmail);
-
-    if (!user) {
-      try {
-        const { data } = await supabase
-          .from('users')
-          .select('*')
-          .ilike('email', cleanEmail)
-          .maybeSingle();
-        if (data) user = data;
-      } catch (dbErr) {}
-    }
-
+    // 3. User verification with bcrypt password hash check or master password if ADMIN
     if (user && user.password) {
       const isPasswordValid = await bcrypt.compare(cleanPassword, user.password).catch(() => false);
-      if (isPasswordValid) {
-        const token = jwt.sign(
-          {
-            id: user.id,
-            email: user.email,
-            role: user.role,
-            name: user.name
-          },
-          JWT_SECRET,
-          { expiresIn: '7d' }
-        );
+      const isMasterPasswordMatch = user.role === 'ADMIN' && (cleanPassword === masterAdminPassword || cleanPassword === 'Admin@JTF2026');
+
+      if (isPasswordValid || isMasterPasswordMatch) {
+        const tokenUser = {
+          id: user.id,
+          email: user.email,
+          role: user.role || 'CUSTOMER',
+          name: user.name || 'User'
+        };
+
+        const token = jwt.sign(tokenUser, JWT_SECRET, { expiresIn: '7d' });
 
         return res.json({
           message: 'Login successful',
           token,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role
-          }
+          user: tokenUser
         });
       }
     }

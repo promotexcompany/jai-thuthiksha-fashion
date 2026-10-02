@@ -4,7 +4,6 @@ import { PRODUCTS, CATEGORIES } from '../services/data';
 import { api } from '../services/api';
 import type { Product, Category } from '../types/fashion';
 import type { MainLayoutContextType } from '../layouts/MainLayout';
-import { HeroSection } from '../components/HeroSection';
 import { Sparkles, Eye, Image as ImageIcon, Sparkle } from 'lucide-react';
 
 export const Catalogue: React.FC = () => {
@@ -109,12 +108,6 @@ export const Catalogue: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-16">
-      
-      {/* Show Hero Header when on 'All' Category view */}
-      {categoryFilter === 'all' && (
-        <HeroSection />
-      )}
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 pt-6">
         
         {/* Floating Category Filter Pill Bar */}

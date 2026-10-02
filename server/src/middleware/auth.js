@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/supabase.js';
+import { readDb } from '../db.js';
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'jtf_production_jwt_secret_key_2026';
 
@@ -13,7 +14,7 @@ export const verifyToken = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // Attempt DB lookup
+    // 1. Attempt Supabase lookup
     try {
       const { data: user } = await supabase
         .from('users')
@@ -31,15 +32,32 @@ export const verifyToken = async (req, res, next) => {
         return next();
       }
     } catch (dbErr) {
-      console.warn('DB token verify warning, using token claims fallback');
+      console.warn('Supabase DB token verify notice:', dbErr.message);
     }
 
-    // Fallback using decoded token if valid
+    // 2. Attempt File DB lookup
+    try {
+      const db = readDb();
+      const fileUser = (db.users || []).find(u => u.id === decoded.id);
+      if (fileUser) {
+        req.user = {
+          id: fileUser.id,
+          email: fileUser.email,
+          name: fileUser.name,
+          role: fileUser.role
+        };
+        return next();
+      }
+    } catch (fileDbErr) {
+      console.warn('File DB lookup warning:', fileDbErr.message);
+    }
+
+    // 3. Fallback using decoded token claims
     req.user = {
       id: decoded.id,
       email: decoded.email,
-      name: decoded.name || 'Admin',
-      role: decoded.role || 'ADMIN'
+      name: decoded.name || 'User',
+      role: decoded.role || 'CUSTOMER'
     };
 
     next();
@@ -56,4 +74,5 @@ export const requireAdmin = (req, res, next) => {
   }
   next();
 };
+
 

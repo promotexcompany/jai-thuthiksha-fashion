@@ -113,6 +113,7 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
       name,
       price,
       rentalPrice4Days,
+      rentalPrice8Days,
       retailPrice,
       categoryId,
       categoryName,
@@ -140,6 +141,9 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
     if (allImages.length === 0) allImages.push(primary);
 
     const priceNum = Number(price ?? rentalPrice4Days ?? retailPrice ?? 0);
+    const retailPriceNum = Number(retailPrice ?? priceNum);
+    const rentalPrice4DaysNum = Number(rentalPrice4Days ?? priceNum);
+    const rentalPrice8DaysNum = Number(rentalPrice8Days ?? priceNum);
 
     const newDressRecord = {
       id: dressId,
@@ -147,17 +151,17 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
       categoryId: categoryId || 'cat-photoshoot',
       categoryName: categoryName || 'Photoshoot',
       designer: designer || 'Jai Thuthiksha Couture',
-      retailPrice: priceNum,
-      rentalPrice4Days: priceNum,
-      rentalPrice8Days: priceNum,
+      retailPrice: retailPriceNum,
+      rentalPrice4Days: rentalPrice4DaysNum,
+      rentalPrice8Days: rentalPrice8DaysNum,
       advanceAmount: Number(advanceAmount) || 0,
       images: allImages,
       primaryImage: primary,
       description: description || 'Designer fashion dress',
       fabric: fabric || 'Premium Fabric',
       workType: workType || 'Handcraft',
-      sizes: Array.isArray(sizes) ? sizes : ['S', 'M', 'L'],
-      colors: Array.isArray(colors) ? colors : ['Multi'],
+      sizes: Array.isArray(sizes) ? sizes : (typeof sizes === 'string' ? sizes.split(',').map(s => s.trim()) : ['S', 'M', 'L']),
+      colors: Array.isArray(colors) ? colors : (typeof colors === 'string' ? colors.split(',').map(c => c.trim()) : ['Multi']),
       rating: 5.0,
       reviewCount: 1,
       occasion: occasion || 'Special Occasion',
@@ -219,40 +223,47 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Dress ID is required.' });
     }
 
-    const allImages = Array.isArray(body.images) && body.images.length > 0 ? body.images : (body.primaryImage ? [body.primaryImage] : []);
-    const primary = body.primaryImage || allImages[0] || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800';
-    if (allImages.length === 0) allImages.push(primary);
-
-    const priceNum = Number(body.price ?? body.rentalPrice4Days ?? body.retailPrice ?? 0);
-
-    const updatedFields = {
-      id: String(id),
-      name: body.name ? body.name.trim() : 'Designer Dress',
-      categoryId: body.categoryId || 'cat-photoshoot',
-      categoryName: body.categoryName || 'Photoshoot',
-      designer: body.designer || 'Jai Thuthiksha Couture',
-      retailPrice: priceNum,
-      rentalPrice4Days: priceNum,
-      rentalPrice8Days: priceNum,
-      advanceAmount: Number(body.advanceAmount) || 0,
-      images: allImages,
-      primaryImage: primary,
-      description: body.description || 'Designer fashion dress',
-      fabric: body.fabric || 'Premium Fabric',
-      workType: body.workType || 'Handcraft',
-      sizes: Array.isArray(body.sizes) ? body.sizes : ['S', 'M', 'L'],
-      colors: Array.isArray(body.colors) ? body.colors : ['Multi'],
-      occasion: body.occasion || 'Special Occasion',
-      isAvailable: body.isAvailable !== undefined ? body.isAvailable : true,
-      isHidden: body.isHidden === true
-    };
-
-    // Update File DB
     const db = readDb();
     if (!db.dresses) db.dresses = [];
-    const idx = db.dresses.findIndex(d => d.id === id);
-    if (idx !== -1) {
-      db.dresses[idx] = { ...db.dresses[idx], ...updatedFields };
+    const existingIndex = db.dresses.findIndex(d => d.id === id);
+    const existingDress = existingIndex !== -1 ? db.dresses[existingIndex] : {};
+
+    const allImages = Array.isArray(body.images) && body.images.length > 0
+      ? body.images
+      : (body.primaryImage ? [body.primaryImage] : (existingDress.images || []));
+    const primary = body.primaryImage || allImages[0] || existingDress.primaryImage || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800';
+    if (allImages.length === 0) allImages.push(primary);
+
+    const priceNum = Number(body.price ?? body.rentalPrice4Days ?? body.retailPrice ?? existingDress.rentalPrice4Days ?? 0);
+    const retailPriceNum = Number(body.retailPrice ?? priceNum);
+    const rentalPrice4DaysNum = Number(body.rentalPrice4Days ?? priceNum);
+    const rentalPrice8DaysNum = Number(body.rentalPrice8Days ?? priceNum);
+
+    const updatedFields = {
+      ...existingDress,
+      id: String(id),
+      name: body.name ? body.name.trim() : (existingDress.name || 'Designer Dress'),
+      categoryId: body.categoryId || existingDress.categoryId || 'cat-photoshoot',
+      categoryName: body.categoryName || existingDress.categoryName || 'Photoshoot',
+      designer: body.designer || existingDress.designer || 'Jai Thuthiksha Couture',
+      retailPrice: retailPriceNum,
+      rentalPrice4Days: rentalPrice4DaysNum,
+      rentalPrice8Days: rentalPrice8DaysNum,
+      advanceAmount: body.advanceAmount !== undefined ? Number(body.advanceAmount) : (existingDress.advanceAmount || 0),
+      images: allImages,
+      primaryImage: primary,
+      description: body.description || existingDress.description || 'Designer fashion dress',
+      fabric: body.fabric || existingDress.fabric || 'Premium Fabric',
+      workType: body.workType || existingDress.workType || 'Handcraft',
+      sizes: Array.isArray(body.sizes) ? body.sizes : (typeof body.sizes === 'string' ? body.sizes.split(',').map(s => s.trim()) : (existingDress.sizes || ['S', 'M', 'L'])),
+      colors: Array.isArray(body.colors) ? body.colors : (typeof body.colors === 'string' ? body.colors.split(',').map(c => c.trim()) : (existingDress.colors || ['Multi'])),
+      occasion: body.occasion || existingDress.occasion || 'Special Occasion',
+      isAvailable: body.isAvailable !== undefined ? Boolean(body.isAvailable) : (existingDress.isAvailable !== undefined ? Boolean(existingDress.isAvailable) : true),
+      isHidden: body.isHidden !== undefined ? Boolean(body.isHidden) : Boolean(existingDress.isHidden)
+    };
+
+    if (existingIndex !== -1) {
+      db.dresses[existingIndex] = updatedFields;
     } else {
       db.dresses.unshift(updatedFields);
     }

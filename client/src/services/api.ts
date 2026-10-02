@@ -39,9 +39,12 @@ export const getBackendHost = (): string => {
 
 export const formatImageUrl = (url?: string | null): string => {
   if (!url) return '';
-  if (typeof url === 'string' && url.startsWith('/uploads/')) {
-    const host = getBackendHost();
-    return `${host}${url}`;
+  if (typeof url === 'string') {
+    if (url.startsWith('/uploads/') || url.startsWith('uploads/')) {
+      const cleanPath = url.startsWith('/') ? url : `/${url}`;
+      const host = getBackendHost();
+      return `${host}${cleanPath}`;
+    }
   }
   return url;
 };

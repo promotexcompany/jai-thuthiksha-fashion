@@ -3,7 +3,6 @@ import { AdminAuthProvider } from './context/AdminAuthContext';
 import { CustomerAuthProvider } from './context/CustomerAuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { MainLayout } from './layouts/MainLayout';
-import Home from './pages/Home';
 import Catalogue from './pages/Catalogue';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
@@ -16,7 +15,7 @@ function App() {
           <Routes>
             {/* Public Customer Routes */}
             <Route path="/" element={<MainLayout />}>
-              <Route index element={<Home />} />
+              <Route index element={<Catalogue />} />
               <Route path="catalogue" element={<Catalogue />} />
               <Route path="about" element={<Navigate to="/" replace />} />
               <Route path="contact" element={<Navigate to="/" replace />} />
