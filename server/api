@@ -1,0 +1,3 @@
+import app from '../server/src/index.js';
+
+export default app;git add server/src/index.js api/index.js
