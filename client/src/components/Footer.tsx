@@ -13,7 +13,7 @@ export const Footer: React.FC<FooterProps> = ({ settings }) => {
   const phoneDisplay = settings?.phoneDisplay || SHOP_CONFIG.SHOP_PHONE_DISPLAY;
   const shopAddress = settings?.shopAddress || SHOP_CONFIG.SHOP_ADDRESS;
   const shopEmail = settings?.shopEmail || SHOP_CONFIG.SHOP_EMAIL;
-  const shopLogo = settings?.shopLogo || logoImg;
+  const shopLogo = (settings?.shopLogo && !settings.shopLogo.includes('/assets/logo.png')) ? settings.shopLogo : logoImg;
 
   const currentYear = new Date().getFullYear();
 
@@ -26,7 +26,14 @@ export const Footer: React.FC<FooterProps> = ({ settings }) => {
           <div className="md:col-span-5 space-y-4">
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center p-1">
-                <img src={shopLogo} alt={shopName} className="h-full w-full object-contain filter drop-shadow" />
+                <img
+                  src={shopLogo}
+                  alt={shopName}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = logoImg;
+                  }}
+                  className="h-full w-full object-contain filter drop-shadow"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold font-serif gradient-text">{shopName}</span>

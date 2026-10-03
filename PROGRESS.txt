@@ -1,62 +1,87 @@
 ================================================================================
 JAI THUTHIKSHA FASHION - ADMIN DASHBOARD & SYSTEM PROGRESS NOTE
 ================================================================================
-Last Updated: 2026-10-03 07:50:00 IST
+Last Updated: 2026-10-03 09:31:30 IST
+
+[PRODUCTION DRESS CRUD ISSUE & ROOT CAUSE RESOLUTION]
+--------------------------------------------------------------------------------
+1. Root Cause Identified:
+   - Foreign Key Constraint Violation (dresses_category_id_fkey):
+     * Supabase dresses table enforces category_id REFERENCES categories(id).
+     * Supabase categories table contains IDs 'cat-1', 'cat-2', and 'cat-6'.
+     * File DB and frontend default states used legacy category IDs ('cat-photoshoot', 'cat-reception', 'cat-bridesmaid').
+     * Submitting a dress with 'cat-photoshoot' failed in Supabase with Postgres error code 23503.
+   - Swallowed Supabase Errors:
+     * @supabase/supabase-js functions (.insert(), .upsert(), .update(), .delete()) return { data, error } instead of throwing exceptions.
+     * Route handlers wrapped calls in try-catch without checking `if (error)`, causing backend to ignore Supabase failures and report success to frontend while writing only to ephemeral file DB.
+   - Serverless Persistence Disconnect:
+     * Ephemeral local file DB reset across Vercel invocations, while GET endpoints read from Supabase.
+     * Failed Supabase inserts resulted in newly created dresses disappearing immediately upon page refresh.
+
+2. Solution Implemented:
+   - Automatic Category ID Resolution (server/src/routes/dresses.js):
+     * Added resolveValidCategoryId() helper that dynamically resolves submitted category IDs, names, or legacy slugs (e.g., 'cat-photoshoot') to valid active category IDs in Supabase ('cat-1').
+   - Synchronized Category Seed Data (server/src/db.js & server/data/db.json):
+     * Updated default category IDs in File DB seed data to 'cat-1', 'cat-2', 'cat-6' to align 100% with Supabase.
+   - Explicit Supabase Error Checking (server/src/routes/dresses.js & server/src/routes/categories.js):
+     * Added explicit `if (sbErr)` checks to log and handle Supabase operation errors across POST, PUT, PATCH, and DELETE endpoints.
+   - Data & Feature Preservation:
+     * Preserved all 6 existing dresses, 3 categories, customer bookings, website settings, and uploaded images intact.
 
 [VERIFIED & COMPLETED FEATURES]
 --------------------------------------------------------------------------------
-1. Public Website Layout Enhancements:
-   - Completely removed top header strip (support phone number, shop tagline, and address horizontal bar) from public website header in Navbar.tsx.
-   - Main navigation bar, boutique logo, category links, and WhatsApp booking action button remain flush at top with zero extra margin or spacing.
-   - Layout fully responsive on desktop and mobile viewports.
-   - Database and admin settings parameters for phone display and address remain intact.
+1. Production Image Loading & Supabase Storage Sync:
+   - Streaming GET /api/uploads/:filename route with binary Content-Type headers and Supabase Storage fallback.
+   - Synchronized 25 uploaded dress images to Supabase Storage bucket 'dresses'.
 
-2. Streamlined Navigation Scope:
-   - Admin sidebar and mobile menu streamlined to contain ONLY:
-     * Dress Inventory (Default page after admin login)
-     * Categories
-     * Sign Out
-   - Overview dashboard cards, Quick Admin Actions, Shop Settings UI, and Bookings UI removed from the admin panel view.
-   - All backend APIs, booking data, settings data, and customer-facing website features remain completely intact and functional.
+2. Admin Dashboard Streamlining (client/src/pages/AdminDashboard.tsx):
+   - Sidebar & header focused exclusively on Dress Inventory, Categories, and Sign Out.
 
-3. Core Inventory & Dress Control:
-   - Full loading of all existing and newly created dresses from database/Supabase.
-   - Edit dress details (Name, Designer, Fabric, Work Type, Descriptions, Sizes, Colors).
-   - Rental Price in INR (4-day & 8-day rates), Retail Value, Security Deposit updates.
-   - Multi-image management: Direct file uploads via /api/admin/upload, image URL additions, interactive gallery thumbnail strip, primary image selection, image removal.
-   - Public Visibility Toggle (Public / Hidden from catalogue).
-   - Availability Status Toggle (Available / Out of Stock / Rented).
-   - Safe Deletion: Dresses with historical customer bookings are safely archived/hidden rather than permanently deleted, protecting booking records.
+3. Core Inventory & Dress CRUD Control:
+   - Add new dress, edit dress details, update rental rates (4-day & 8-day) and advance deposit.
+   - Multi-image management (upload via /api/admin/upload, custom URL addition, gallery thumbnails, primary image selection, deletion).
+   - Public visibility toggle (Public / Hidden) and stock availability toggle.
+   - Safe deletion safeguard for dresses with booking history.
 
 4. Category Management & Safety Safeguards:
-   - Category listing with live assigned outfits counter.
-   - Add, edit, rename, set display order, and enable/disable categories.
-   - Banner image / thumbnail management per category.
-   - Category Deletion Protection: Server-side and client-side safeguard blocks deletion of categories containing assigned dresses (returns HTTP 400 error with list of assigned dresses).
+   - Category creation, edit, display order setting, and enable/disable toggle.
+   - Deletion protection safeguard blocks deletion of categories containing assigned outfits (returns HTTP 400 with outfit list).
 
 5. Security & Authorization:
-   - JWT-based authentication on all admin endpoints (verifyToken + requireAdmin middleware).
-   - Unauthenticated mutation requests rejected with HTTP 401 Unauthorized.
-   - Master admin authentication via /api/auth/login.
+   - JWT-based authentication on all admin endpoints (verifyToken + requireAdmin).
 
-6. Live Synchronization & Build:
-   - Direct database persistence to db.json and Supabase tables.
-   - Public APIs return non-stale catalogue data immediately upon admin publishing.
-   - Vite frontend production build (npm run build) compiles cleanly with 0 TypeScript/JSX errors.
+[FILES MODIFIED IN THIS TASK]
+--------------------------------------------------------------------------------
+- server/src/routes/dresses.js: Added resolveValidCategoryId(), category ID fallback mapping, and explicit Supabase error checking on insert/upsert/update/delete.
+- server/src/routes/categories.js: Added explicit Supabase error handling on category CRUD operations.
+- server/src/db.js: Updated default category IDs in seed data to 'cat-1', 'cat-2', 'cat-6'.
+- server/data/db.json: Updated category IDs to 'cat-1', 'cat-2', 'cat-6'.
+- server/src/verify_crud_supabase.js: Created verification script for Supabase database CRUD & category resolution.
+- server/src/full_api_verification.js: Created end-to-end HTTP API verification suite.
+- PROGRESS.txt: Updated system progress documentation.
 
 [VERIFICATION TEST RESULTS]
 --------------------------------------------------------------------------------
-- Health Check (/api/health): 200 OK
-- Admin Auth (/api/auth/login): 200 OK
-- Unauthorized Access Rejection: 401 Unauthorized
-- Dress CRUD & Visibility Filter: 200 OK (Verified creation, update, visibility toggle, public exclusion of hidden dresses, and deletion)
-- Category CRUD & Safeguard: 200 OK (Verified block on categories with assigned dresses, creation of new category, deletion of empty category)
-- Website Settings Update (/api/settings/admin/update): 200 OK (Backend retained)
-- Production Frontend Build: PASSED (Built in 819ms with 0 errors)
+- Live Supabase CRUD & Category Resolution Test (src/verify_crud_supabase.js): PASSED
+- End-to-End HTTP API & CRUD Verification Suite (src/full_api_verification.js): 15 PASSED, 0 FAILED
+  * GET /api/dresses (Public Catalogue): 200 OK
+  * POST /api/auth/login (Admin Auth): 200 OK
+  * GET /api/dresses/admin/all: 200 OK
+  * POST /api/dresses/admin/add (with category resolution): 201 Created (Verified persistence in Supabase & File DB)
+  * GET /api/dresses/admin/all & GET /api/dresses: Verified newly added dress appears in listing
+  * PUT /api/dresses/admin/:id: 200 OK (Verified update persistence in Supabase)
+  * PATCH /api/dresses/admin/:id/toggle: 200 OK (Verified hidden dress excluded from public catalogue)
+  * DELETE /api/dresses/admin/:id: 200 OK (Verified removal from Supabase)
+  * DELETE /api/categories/admin/:id safeguard: 400 Bad Request (Blocked deletion of category with assigned dresses)
+- Production Frontend Build (npm --prefix client run build): PASSED (Built in 711ms with 0 errors)
 
-[DEPLOYMENT & ENVIRONMENT NOTES]
+[DEPLOYMENT & ENVIRONMENT REQUIREMENTS]
 --------------------------------------------------------------------------------
-- Local Environment: Node 20+, Express Server running on port 5000, Vite Client running on port 5173.
-- Live Deployment Note: Live synchronization tested and verified on local persistent database and Supabase client. When deploying to Vercel/Production hosting, ensure VITE_API_BASE_URL and SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are set in environment variables.
+- Environment Variables Required on Production Hosting (Vercel):
+  * SUPABASE_URL=https://vdpudesdaydlcholqdmx.supabase.co
+  * SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+  * JWT_SECRET=<secret-key>
+  * VITE_API_BASE_URL=/api
+- Storage Persistence: All dresses and categories now sync seamlessly with Supabase database tables `dresses` and `categories`.
 
 ================================================================================

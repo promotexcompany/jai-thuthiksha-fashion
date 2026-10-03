@@ -31,7 +31,7 @@ test.describe('Jai Thuthiksha Fashion - E2E Smoke Tests', () => {
 
   test('3. Admin Login & Dashboard Navigation (if credentials provided)', async ({ page }) => {
     const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@JTF2026';
-    const adminEmail = process.env.ADMIN_USERNAME || 'admin@jaithuthikshafashion.online';
+    const adminEmail = process.env.ADMIN_USERNAME || 'admin@jaithuthiksha.com';
 
     await page.goto('/admin/login');
 
@@ -42,11 +42,11 @@ test.describe('Jai Thuthiksha Fashion - E2E Smoke Tests', () => {
 
     // Verify navigation to Admin Dashboard
     await page.waitForURL('**/admin/dashboard', { timeout: 15000 });
-    await expect(page.locator('h1')).toContainText(/Dress Management/i);
+    await expect(page.locator('h1')).toContainText(/Dress Inventory/i);
 
     // Verify Categories Tab
     await page.click('button:has-text("Categories")');
-    await expect(page.locator('h1')).toContainText(/Category Management/i);
+    await expect(page.locator('h1')).toContainText(/Occasion Categories/i);
   });
 
 });

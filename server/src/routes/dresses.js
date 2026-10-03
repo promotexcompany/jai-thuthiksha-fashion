@@ -5,10 +5,52 @@ import { readDb, writeDb } from '../db.js';
 
 const router = express.Router();
 
+export const resolveValidCategoryId = async (submittedId, submittedName) => {
+  let categories = [];
+  try {
+    const { data: sbCats, error } = await supabase.from('categories').select('*');
+    if (!error && sbCats && sbCats.length > 0) {
+      categories = sbCats;
+    }
+  } catch (e) {}
+
+  if (categories.length === 0) {
+    const db = readDb();
+    categories = db.categories || [];
+  }
+
+  if (categories.length === 0) {
+    return { categoryId: 'cat-1', categoryName: 'Photoshoot' };
+  }
+
+  // 1. Direct ID match
+  const exactCat = categories.find(c => String(c.id) === String(submittedId));
+  if (exactCat) {
+    return { categoryId: String(exactCat.id), categoryName: exactCat.name };
+  }
+
+  // 2. Name or Slug match
+  const cleanSubmittedId = String(submittedId || '').toLowerCase().replace(/^cat-/, '');
+  const cleanSubmittedName = String(submittedName || '').toLowerCase();
+
+  const matchedCat = categories.find(c => {
+    const cName = String(c.name || '').toLowerCase();
+    const cSlug = String(c.slug || '').toLowerCase();
+    return cName === cleanSubmittedId || cSlug === cleanSubmittedId || (cleanSubmittedName && cName === cleanSubmittedName);
+  });
+
+  if (matchedCat) {
+    return { categoryId: String(matchedCat.id), categoryName: matchedCat.name };
+  }
+
+  // 3. Fallback to first category
+  return { categoryId: String(categories[0].id), categoryName: categories[0].name };
+};
+
 export const mapDressFromDb = (d) => {
   if (!d) return null;
   const p = Number(d.rental_price_4_days) || Number(d.rentalPrice4Days) || Number(d.retail_price) || Number(d.retailPrice) || Number(d.price) || 0;
-  const catId = d.category_id || d.categoryId || 'cat-photoshoot';
+  const catId = d.category_id || d.categoryId || 'cat-1';
   const catName = d.category_name || d.categoryName || 'Photoshoot';
   const imgs = Array.isArray(d.images) && d.images.length > 0 ? d.images : (d.primary_image || d.primaryImage ? [d.primary_image || d.primaryImage] : (d.image ? [d.image] : []));
   const primary = d.primary_image || d.primaryImage || d.image || imgs[0] || '';
@@ -38,7 +80,7 @@ export const mapDressFromDb = (d) => {
     rating: Number(d.rating) || 5.0,
     reviewCount: Number(d.review_count) || Number(d.reviewCount) || 0,
     occasion: d.occasion || '',
-    isAvailable: d.is_available !== undefined ? d.is_available : (d.isAvailable !== undefined ? d.isAvailable : true),
+    isAvailable: d.is_available !== undefined ? Boolean(d.is_available) : (d.isAvailable !== undefined ? Boolean(d.isAvailable) : true),
     isHidden: d.is_hidden !== undefined ? Boolean(d.is_hidden) : Boolean(d.isHidden),
     createdAt: d.created_at || d.createdAt || new Date().toISOString()
   };
@@ -135,6 +177,8 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Dress name is required.' });
     }
 
+    const { categoryId: validCatId, categoryName: validCatName } = await resolveValidCategoryId(categoryId, categoryName);
+
     const dressId = `jtf-${Date.now()}`;
     const allImages = Array.isArray(images) && images.length > 0 ? images : (primaryImage ? [primaryImage] : []);
     const primary = primaryImage || allImages[0] || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800';
@@ -148,8 +192,8 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
     const newDressRecord = {
       id: dressId,
       name: name.trim(),
-      categoryId: categoryId || 'cat-photoshoot',
-      categoryName: categoryName || 'Photoshoot',
+      categoryId: validCatId,
+      categoryName: validCatName,
       designer: designer || 'Jai Thuthiksha Couture',
       retailPrice: retailPriceNum,
       rentalPrice4Days: rentalPrice4DaysNum,
@@ -164,8 +208,8 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
       colors: Array.isArray(colors) ? colors : (typeof colors === 'string' ? colors.split(',').map(c => c.trim()) : ['Multi']),
       rating: 5.0,
       reviewCount: 1,
-      occasion: occasion || 'Special Occasion',
-      isAvailable: isAvailable !== undefined ? isAvailable : true,
+      occasion: occasion || validCatName,
+      isAvailable: isAvailable !== undefined ? Boolean(isAvailable) : true,
       isHidden: isHidden === true,
       createdAt: new Date().toISOString()
     };
@@ -176,13 +220,13 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
     db.dresses.unshift(newDressRecord);
     writeDb(db);
 
-    // 2. Optional Supabase sync
+    // 2. Supabase sync with explicit error handling
     try {
-      await supabase.from('dresses').insert([{
+      const { data: sbData, error: sbErr } = await supabase.from('dresses').insert([{
         id: dressId,
         name: newDressRecord.name,
-        category_id: newDressRecord.categoryId,
-        category_name: newDressRecord.categoryName,
+        category_id: validCatId,
+        category_name: validCatName,
         designer: newDressRecord.designer,
         retail_price: newDressRecord.retailPrice,
         rental_price_4_days: newDressRecord.rentalPrice4Days,
@@ -201,9 +245,15 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
         is_available: newDressRecord.isAvailable,
         is_hidden: newDressRecord.isHidden,
         created_at: newDressRecord.createdAt
-      }]);
+      }]).select();
+
+      if (sbErr) {
+        console.error('[Dresses API] Supabase insert error:', sbErr);
+      } else {
+        console.log('[Dresses API] Supabase insert successful for dress:', dressId);
+      }
     } catch (sbErr) {
-      console.log('[Dresses API] Supabase insert skipped, stored in file DB');
+      console.error('[Dresses API] Supabase insert exception:', sbErr);
     }
 
     res.status(201).json({ message: 'Dress created successfully', dress: mapDressFromDb(newDressRecord) });
@@ -228,6 +278,11 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
     const existingIndex = db.dresses.findIndex(d => d.id === id);
     const existingDress = existingIndex !== -1 ? db.dresses[existingIndex] : {};
 
+    const { categoryId: validCatId, categoryName: validCatName } = await resolveValidCategoryId(
+      body.categoryId || existingDress.categoryId || body.category,
+      body.categoryName || existingDress.categoryName || body.categoryLabel
+    );
+
     const allImages = Array.isArray(body.images) && body.images.length > 0
       ? body.images
       : (body.primaryImage ? [body.primaryImage] : (existingDress.images || []));
@@ -243,8 +298,8 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
       ...existingDress,
       id: String(id),
       name: body.name ? body.name.trim() : (existingDress.name || 'Designer Dress'),
-      categoryId: body.categoryId || existingDress.categoryId || 'cat-photoshoot',
-      categoryName: body.categoryName || existingDress.categoryName || 'Photoshoot',
+      categoryId: validCatId,
+      categoryName: validCatName,
       designer: body.designer || existingDress.designer || 'Jai Thuthiksha Couture',
       retailPrice: retailPriceNum,
       rentalPrice4Days: rentalPrice4DaysNum,
@@ -257,7 +312,7 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
       workType: body.workType || existingDress.workType || 'Handcraft',
       sizes: Array.isArray(body.sizes) ? body.sizes : (typeof body.sizes === 'string' ? body.sizes.split(',').map(s => s.trim()) : (existingDress.sizes || ['S', 'M', 'L'])),
       colors: Array.isArray(body.colors) ? body.colors : (typeof body.colors === 'string' ? body.colors.split(',').map(c => c.trim()) : (existingDress.colors || ['Multi'])),
-      occasion: body.occasion || existingDress.occasion || 'Special Occasion',
+      occasion: body.occasion || existingDress.occasion || validCatName,
       isAvailable: body.isAvailable !== undefined ? Boolean(body.isAvailable) : (existingDress.isAvailable !== undefined ? Boolean(existingDress.isAvailable) : true),
       isHidden: body.isHidden !== undefined ? Boolean(body.isHidden) : Boolean(existingDress.isHidden)
     };
@@ -269,13 +324,13 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
     }
     writeDb(db);
 
-    // Sync to Supabase if available
+    // Sync to Supabase with explicit error handling
     try {
-      await supabase.from('dresses').upsert([{
+      const { data: sbData, error: sbErr } = await supabase.from('dresses').upsert([{
         id: String(id),
         name: updatedFields.name,
-        category_id: updatedFields.categoryId,
-        category_name: updatedFields.categoryName,
+        category_id: validCatId,
+        category_name: validCatName,
         designer: updatedFields.designer,
         retail_price: updatedFields.retailPrice,
         rental_price_4_days: updatedFields.rentalPrice4Days,
@@ -291,9 +346,15 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
         occasion: updatedFields.occasion,
         is_available: updatedFields.isAvailable,
         is_hidden: updatedFields.isHidden
-      }]);
+      }]).select();
+
+      if (sbErr) {
+        console.error('[Dresses API] Supabase upsert error:', sbErr);
+      } else {
+        console.log('[Dresses API] Supabase upsert successful for dress:', id);
+      }
     } catch (sbErr) {
-      console.log('[Dresses API] Supabase update skipped');
+      console.error('[Dresses API] Supabase update exception:', sbErr);
     }
 
     res.json({ message: 'Dress updated successfully', dress: mapDressFromDb(updatedFields) });
@@ -315,20 +376,24 @@ router.patch('/admin/:id/toggle', verifyToken, requireAdmin, async (req, res) =>
 
     let updatedRecord = { id };
     if (idx !== -1) {
-      if (isAvailable !== undefined) db.dresses[idx].isAvailable = isAvailable;
-      if (isHidden !== undefined) db.dresses[idx].isHidden = isHidden;
+      if (isAvailable !== undefined) db.dresses[idx].isAvailable = Boolean(isAvailable);
+      if (isHidden !== undefined) db.dresses[idx].isHidden = Boolean(isHidden);
       updatedRecord = db.dresses[idx];
       writeDb(db);
     }
 
-    // Sync to Supabase if available
+    // Sync to Supabase with error logging
     try {
       const updates = {};
-      if (isAvailable !== undefined) updates.is_available = isAvailable;
-      if (isHidden !== undefined) updates.is_hidden = isHidden;
-      await supabase.from('dresses').update(updates).eq('id', id);
+      if (isAvailable !== undefined) updates.is_available = Boolean(isAvailable);
+      if (isHidden !== undefined) updates.is_hidden = Boolean(isHidden);
+
+      const { error: sbErr } = await supabase.from('dresses').update(updates).eq('id', id);
+      if (sbErr) {
+        console.error('[Dresses API] Supabase toggle update error:', sbErr);
+      }
     } catch (sbErr) {
-      // Ignore
+      console.error('[Dresses API] Supabase toggle update exception:', sbErr);
     }
 
     res.json({ message: 'Dress status updated', dress: mapDressFromDb(updatedRecord) });
@@ -361,7 +426,8 @@ router.delete('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
         writeDb(db);
       }
       try {
-        await supabase.from('dresses').update({ is_hidden: true }).eq('id', id);
+        const { error: sbErr } = await supabase.from('dresses').update({ is_hidden: true }).eq('id', id);
+        if (sbErr) console.error('[Dresses API] Supabase hide update error:', sbErr);
       } catch (e) {}
 
       return res.json({
@@ -376,8 +442,15 @@ router.delete('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
     writeDb(db);
 
     try {
-      await supabase.from('dresses').delete().eq('id', id);
-    } catch (e) {}
+      const { error: sbErr } = await supabase.from('dresses').delete().eq('id', id);
+      if (sbErr) {
+        console.error('[Dresses API] Supabase delete error:', sbErr);
+      } else {
+        console.log('[Dresses API] Supabase dress deleted successfully:', id);
+      }
+    } catch (e) {
+      console.error('[Dresses API] Supabase delete exception:', e);
+    }
 
     res.json({ message: 'Dress deleted successfully', isDeleted: true, id });
   } catch (err) {

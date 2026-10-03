@@ -19,7 +19,7 @@
   ],
   "categories": [
     {
-      "id": "cat-photoshoot",
+      "id": "cat-1",
       "name": "Photoshoot",
       "slug": "photoshoot",
       "tagline": "Dramatic Trails & Flared Outfits for Pre-Wedding & Concept Shoots",
@@ -28,7 +28,7 @@
       "image": "https://images.unsplash.com/photo-1546804784-896d0dca3814?auto=format&fit=crop&q=80&w=800"
     },
     {
-      "id": "cat-reception",
+      "id": "cat-2",
       "name": "Reception",
       "slug": "reception",
       "tagline": "Royal Gowns & Designer Outfits for Grand Receptions",
@@ -37,7 +37,7 @@
       "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800"
     },
     {
-      "id": "cat-bridesmaid",
+      "id": "cat-6",
       "name": "Bridesmaid",
       "slug": "bridesmaid",
       "tagline": "Elegant Lehengas & Saree Coutures for Bridesmaids",
@@ -78,7 +78,7 @@
     {
       "id": "jtf-001",
       "name": "Maharani Velvet Crimson Bridal Lehenga",
-      "categoryId": "cat-photoshoot",
+      "categoryId": "cat-1",
       "categoryName": "Photoshoot",
       "designer": "Jai Thuthiksha Couture",
       "retailPrice": 85000,
@@ -113,7 +113,7 @@
     {
       "id": "jtf-002",
       "name": "Pure Temple Gold Kanjeevaram Silk Saree",
-      "categoryId": "cat-reception",
+      "categoryId": "cat-2",
       "categoryName": "Reception",
       "designer": "Kanchipuram Craftsmen",
       "retailPrice": 42000,
@@ -144,7 +144,7 @@
     {
       "id": "jtf-003",
       "name": "Emerald Glitter Embroidered Indo-Western Gown",
-      "categoryId": "cat-bridesmaid",
+      "categoryId": "cat-6",
       "categoryName": "Bridesmaid",
       "designer": "JTF Modern Atelier",
       "retailPrice": 38000,
@@ -224,7 +224,16 @@
     "aboutHeading": "Redefining Luxury Indian Designer Wear for Every Celebration",
     "aboutContent": "Founded with a vision to make royal heritage bridal couture accessible, sustainable, and affordable. At Jai Thuthiksha Fashion, every outfit tells a story of craftsmanship, elegance, and timeless South Asian heritage.",
     "termsInstructions": "Every rental includes complimentary custom alterations, 5-stage medical-grade dry cleaning, and protective garment bag delivery. Orders must be returned in the provided return bag on or before the agreed return date.",
-    "cancellationAdvanceInfo": "An advance deposit is required to confirm your rental dates. Cancellations made 7+ days prior to rental start date receive 100% refund of advance deposit."
+    "cancellationAdvanceInfo": "An advance deposit is required to confirm your rental dates. Cancellations made 7+ days prior to rental start date receive 100% refund of advance deposit.",
+    "id": 1,
+    "city": "Erode",
+    "state": "Tamil Nadu",
+    "pincode": "638002",
+    "mapsUrl": "https://maps.google.com/?q=Karur+Bypass+road+Gandhiji+Street+Sakthi+Nagar+Erode",
+    "trialTitle": "Boutique Trial & Fitting Session",
+    "trialDescription": "Visit Jai Thuthiksha Fashion for personalized styling & bridal trial fitting.",
+    "trialAvailabilityInfo": "Monday - Saturday: 10:00 AM - 8:30 PM (All Days Open)",
+    "updatedAt": "2026-10-03T03:01:18.185Z"
   },
   "offers": [
     {

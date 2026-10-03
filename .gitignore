@@ -1,5 +1,11 @@
-﻿node_modules/
+node_modules/
 .env
 .env.*
 !.env.example
 dist/
+scratch/
+test-results/
+server/src/test_supabase.js
+server/src/inspect_supabase.js
+server/src/verify_crud_supabase.js
+server/src/verify-image-status.js

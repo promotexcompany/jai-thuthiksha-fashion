@@ -107,7 +107,7 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
 
     // Sync to Supabase if available
     try {
-      await supabase.from('categories').insert([{
+      const { error: sbErr } = await supabase.from('categories').insert([{
         id: catId,
         name: cleanName,
         slug,
@@ -116,7 +116,10 @@ router.post('/admin/add', verifyToken, requireAdmin, async (req, res) => {
         display_order: newCat.order,
         image: newCat.image
       }]);
-    } catch (e) {}
+      if (sbErr) console.error('[Categories API] Supabase insert error:', sbErr);
+    } catch (e) {
+      console.error('[Categories API] Supabase insert exception:', e);
+    }
 
     res.status(201).json({ message: 'Category created successfully', category: mapCategoryFromDb(newCat) });
   } catch (err) {
@@ -162,7 +165,7 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
 
     // Sync to Supabase if available
     try {
-      await supabase.from('categories').upsert([{
+      const { error: sbErr } = await supabase.from('categories').upsert([{
         id: String(id),
         name,
         slug,
@@ -171,7 +174,10 @@ router.put('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
         display_order: orderVal,
         enabled: updatePayload.enabled
       }]);
-    } catch (e) {}
+      if (sbErr) console.error('[Categories API] Supabase upsert error:', sbErr);
+    } catch (e) {
+      console.error('[Categories API] Supabase upsert exception:', e);
+    }
 
     res.json({ message: 'Category updated successfully', category: mapCategoryFromDb(updatePayload) });
   } catch (err) {
@@ -191,8 +197,32 @@ router.delete('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
     const db = readDb();
     const dresses = db.dresses || [];
 
-    // Check if dresses are currently assigned to this category
-    const assignedDresses = dresses.filter(d => d.categoryId === id || d.category_id === id);
+    // Find target category name
+    const cat = (db.categories || []).find(c => String(c.id) === String(id));
+    const catNameLower = cat ? String(cat.name).toLowerCase() : '';
+
+    // Check if dresses are currently assigned to this category in Supabase
+    try {
+      const { data: sbDresses } = await supabase
+        .from('dresses')
+        .select('id, name')
+        .eq('category_id', id);
+      if (sbDresses && sbDresses.length > 0) {
+        const dressNames = sbDresses.slice(0, 3).map(d => `"${d.name}"`).join(', ');
+        const extraCount = sbDresses.length > 3 ? ` and ${sbDresses.length - 3} more` : '';
+        return res.status(400).json({
+          error: `Cannot delete category: ${sbDresses.length} dress(es) (${dressNames}${extraCount}) are assigned to it. Please reassign or delete those dresses first.`
+        });
+      }
+    } catch (sbErr) {}
+
+    // Check if dresses are currently assigned to this category in File DB
+    const assignedDresses = dresses.filter(d => {
+      const cId = String(d.categoryId || d.category_id || d.category || '');
+      const cLabel = String(d.categoryLabel || d.categoryName || d.category_name || '').toLowerCase();
+      return cId === String(id) || (catNameLower && cLabel === catNameLower);
+    });
+
     if (assignedDresses.length > 0) {
       const dressNames = assignedDresses.slice(0, 3).map(d => `"${d.name}"`).join(', ');
       const extraCount = assignedDresses.length > 3 ? ` and ${assignedDresses.length - 3} more` : '';
@@ -207,7 +237,8 @@ router.delete('/admin/:id', verifyToken, requireAdmin, async (req, res) => {
 
     // Sync to Supabase
     try {
-      await supabase.from('categories').delete().eq('id', id);
+      const { error: sbErr } = await supabase.from('categories').delete().eq('id', id);
+      if (sbErr) console.error('[Categories API] Supabase delete error:', sbErr);
     } catch (e) {}
 
     res.json({ message: 'Category deleted successfully', id });

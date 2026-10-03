@@ -37,9 +37,9 @@ const getInitialData = () => {
       }
     ],
     categories: [
-      { id: 'cat-photoshoot', name: 'Photoshoot', slug: 'photoshoot', tagline: 'Dramatic Trails & Flared Outfits for Pre-Wedding & Concept Shoots', enabled: true, order: 1, image: 'https://images.unsplash.com/photo-1546804784-896d0dca3814?auto=format&fit=crop&q=80&w=800' },
-      { id: 'cat-reception', name: 'Reception', slug: 'reception', tagline: 'Royal Gowns & Designer Outfits for Grand Receptions', enabled: true, order: 2, image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800' },
-      { id: 'cat-bridesmaid', name: 'Bridesmaid', slug: 'bridesmaid', tagline: 'Elegant Lehengas & Saree Coutures for Bridesmaids', enabled: true, order: 3, image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&q=80&w=800' }
+      { id: 'cat-1', name: 'Photoshoot', slug: 'photoshoot', tagline: 'Dramatic Trails & Flared Outfits for Pre-Wedding & Concept Shoots', enabled: true, order: 1, image: 'https://images.unsplash.com/photo-1546804784-896d0dca3814?auto=format&fit=crop&q=80&w=800' },
+      { id: 'cat-2', name: 'Reception', slug: 'reception', tagline: 'Royal Gowns & Designer Outfits for Grand Receptions', enabled: true, order: 2, image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=800' },
+      { id: 'cat-6', name: 'Bridesmaid', slug: 'bridesmaid', tagline: 'Elegant Lehengas & Saree Coutures for Bridesmaids', enabled: true, order: 3, image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&q=80&w=800' }
     ],
     filters: {
       sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Custom Measurement'],
@@ -50,7 +50,7 @@ const getInitialData = () => {
       {
         id: 'jtf-001',
         name: 'Maharani Velvet Crimson Bridal Lehenga',
-        categoryId: 'cat-photoshoot',
+        categoryId: 'cat-1',
         categoryName: 'Photoshoot',
         designer: 'Jai Thuthiksha Couture',
         retailPrice: 85000,
@@ -77,7 +77,7 @@ const getInitialData = () => {
       {
         id: 'jtf-002',
         name: 'Pure Temple Gold Kanjeevaram Silk Saree',
-        categoryId: 'cat-reception',
+        categoryId: 'cat-2',
         categoryName: 'Reception',
         designer: 'Kanchipuram Craftsmen',
         retailPrice: 42000,
@@ -103,7 +103,7 @@ const getInitialData = () => {
       {
         id: 'jtf-003',
         name: 'Emerald Glitter Embroidered Indo-Western Gown',
-        categoryId: 'cat-bridesmaid',
+        categoryId: 'cat-6',
         categoryName: 'Bridesmaid',
         designer: 'JTF Modern Atelier',
         retailPrice: 38000,

@@ -35,6 +35,43 @@ const upload = multer({
 
 const router = express.Router();
 
+// GET /api/uploads/:filename & GET /uploads/:filename (Serve uploaded images securely with proper MIME type)
+const serveUploadedFile = (req, res) => {
+  const rawFilename = req.params.filename || '';
+  const filename = path.basename(rawFilename);
+
+  if (!filename) {
+    return res.status(404).send('File not found');
+  }
+
+  const localFilePath = path.join(UPLOADS_DIR, filename);
+
+  // 1. Check local filesystem first
+  if (fs.existsSync(localFilePath)) {
+    const ext = path.extname(filename).toLowerCase();
+    const mimeTypes = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.webp': 'image/webp',
+      '.gif': 'image/gif',
+      '.svg': 'image/svg+xml'
+    };
+    const contentType = mimeTypes[ext] || 'image/jpeg';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    return fs.createReadStream(localFilePath).pipe(res);
+  }
+
+  // 2. Redirect to Supabase Storage public URL fallback
+  const supabaseUrl = process.env.SUPABASE_URL || 'https://vdpudesdaydlcholqdmx.supabase.co';
+  const publicStorageUrl = `${supabaseUrl}/storage/v1/object/public/dresses/${filename}`;
+  return res.redirect(302, publicStorageUrl);
+};
+
+router.get('/uploads/:filename', serveUploadedFile);
+router.get('/api/uploads/:filename', serveUploadedFile);
+
 // POST /api/admin/upload (Admin Multi-Image Upload)
 router.post('/admin/upload', verifyToken, requireAdmin, (req, res) => {
   upload.array('images', 12)(req, res, async (err) => {
@@ -77,12 +114,12 @@ router.post('/admin/upload', verifyToken, requireAdmin, (req, res) => {
           console.warn('Supabase storage bucket upload notice:', storageErr);
         }
 
-        // 2. Save locally to server/public/uploads if Supabase Storage is not set up
+        // 2. Fallback to /api/uploads/ filename route if Supabase Storage is not active
         if (!uploadedUrl) {
           try {
             const localFilePath = path.join(UPLOADS_DIR, filename);
             fs.writeFileSync(localFilePath, file.buffer);
-            uploadedUrl = `/uploads/${filename}`;
+            uploadedUrl = `/api/uploads/${filename}`;
           } catch (fsErr) {
             console.warn('Local disk file write fallback warning:', fsErr);
           }
