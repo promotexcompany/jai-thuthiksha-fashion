@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Calendar, Menu, X, Sparkles, PhoneCall, User, Camera, Crown, Heart } from 'lucide-react';
+import { Calendar, Menu, X, PhoneCall, User, Camera, Crown, Heart } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 import { SHOP_CONFIG } from '../config/shopConfig';
 import { useCustomerAuth } from '../context/CustomerAuthContext';
@@ -19,8 +19,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { customerUser, isAuthenticated, logout } = useCustomerAuth();
 
   const shopName = settings?.shopName || SHOP_CONFIG.SHOP_NAME;
-  const phoneDisplay = settings?.phoneDisplay || SHOP_CONFIG.SHOP_PHONE_DISPLAY;
-  const shopAddress = settings?.shopAddress || SHOP_CONFIG.SHOP_ADDRESS;
   const shopLogo = settings?.shopLogo || logoImg;
 
   const handleCustomerLogout = () => {
@@ -43,25 +41,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[#0a0914]/85 backdrop-blur-xl border-b border-white/10 shadow-2xl transition-all duration-300">
-
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-pink-950/80 via-rose-950/80 to-purple-950/80 text-slate-200 py-1.5 px-4 text-xs font-medium text-center flex items-center justify-between border-b border-white/5">
-        <div className="hidden sm:flex items-center gap-2 text-pink-300/80">
-          <PhoneCall className="w-3.5 h-3.5 text-amber-400" />
-          <span>Support: {phoneDisplay}</span>
-        </div>
-
-        <div className="mx-auto flex items-center justify-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-          <span className="tracking-wide">
-            ✨ <strong className="text-amber-300 font-semibold">{shopName}</strong> — Designer Outfit Collections
-          </span>
-        </div>
-
-        <div className="hidden sm:flex items-center gap-4 text-pink-200/70 text-[11px] truncate max-w-xs">
-          <span>{shopAddress}</span>
-        </div>
-      </div>
 
       {/* Main Navbar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
