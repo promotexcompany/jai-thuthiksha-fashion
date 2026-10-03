@@ -41,9 +41,14 @@ export const formatImageUrl = (url?: string | null): string => {
   if (!url) return '';
   if (typeof url === 'string') {
     if (url.startsWith('/uploads/') || url.startsWith('uploads/')) {
-      const cleanPath = url.startsWith('/') ? url : `/${url}`;
+      const filename = url.replace(/^\/?uploads\//, '');
       const host = getBackendHost();
-      return `${host}${cleanPath}`;
+      return host ? `${host}/api/uploads/${filename}` : `/api/uploads/${filename}`;
+    }
+    if (url.startsWith('/api/uploads/') || url.startsWith('api/uploads/')) {
+      const filename = url.replace(/^\/?api\/uploads\//, '');
+      const host = getBackendHost();
+      return host ? `${host}/api/uploads/${filename}` : `/api/uploads/${filename}`;
     }
   }
   return url;
